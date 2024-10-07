@@ -1,0 +1,57 @@
+{
+	"name": "@snazzah/davey",
+	"version": "0.0.1",
+	"description": "DAVE implementation (WIP)",
+	"exports": {
+		".": {
+			"require": {
+				"types": "./lib/index.d.ts",
+				"default": "./lib/index.js"
+			},
+			"import": {
+				"types": "./lib/index.d.mts",
+				"default": "./lib/index.mjs"
+			}
+		}
+	},
+	"main": "./lib/index.js",
+	"module": "./lib/index.mjs",
+	"types": "./lib/index.d.ts",
+	"scripts": {
+		"dev": "tsup --watch",
+		"build": "tsc --noEmit && tsup",
+		"test": "mocha -r tsx --extension ts 'test/**/*.ts'"
+	},
+	"keywords": [
+		"discord",
+		"e2ee",
+		"mls"
+	],
+	"author": {
+		"name": "Snazzah",
+		"email": "me@snazzah.com",
+		"url": "https://snazzah.com/"
+	},
+	"funding": {
+		"url": "https://github.com/sponsors/Snazzah"
+	},
+	"license": "MIT",
+	"dependencies": {
+		"@noble/curves": "^1.6.0"
+	},
+	"engines": {
+		"node": ">=18"
+	},
+	"devDependencies": {
+		"@types/chai": "^5.0.0",
+		"@types/chai-as-promised": "^8.0.1",
+		"@types/mocha": "^10.0.8",
+		"@types/node": "^22.7.1",
+		"chai": "^5.1.1",
+		"chai-as-promised": "^8.0.0",
+		"mocha": "^10.7.3",
+		"tsup": "^8.3.0",
+		"tsx": "^4.19.1",
+		"typescript": "^5.6.2"
+	}
+}
