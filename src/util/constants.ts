@@ -87,3 +87,9 @@ export enum ProposalOrRefType { // u8
   PROPOSAL = 1,
   REFERENCE = 2,
 };
+
+/** @see https://www.rfc-editor.org/rfc/rfc9420.html#section-7.8-5 */
+export enum NodeType { // u8
+  LEAF = 1,
+  PARENT = 2,
+};

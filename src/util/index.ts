@@ -35,7 +35,34 @@ export class DataCursor {
 
   move(to: number) {
     this.index += to;
-    return this.ended;
+  }
+
+  skip(kinds: ('u8' | 'u16' | 'u32' | 'u64' | 'v')[]) {
+    for (const kind of kinds) {
+      switch (kind) {
+        case 'u8': {
+          this.move(1);
+          break;
+        }
+        case 'u16': {
+          this.move(2);
+          break;
+        }
+        case 'u32': {
+          this.move(4);
+          break;
+        }
+        case 'u64': {
+          this.move(8);
+          break;
+        }
+        case 'v': {
+          const { offset, v } = readVarint(this.buffer, this.index);
+          this.move(offset + v);
+          break;
+        }
+      }
+    }
   }
 
   get lengthLeft() {

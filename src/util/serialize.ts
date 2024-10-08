@@ -9,12 +9,13 @@ type UIntResolver = [type: 'u8' | 'u16' | 'u32', value: number];
 type BigUIntResolver = [type: 'u64', value: bigint];
 type VectorResolver = [type: 'v', value?: Uint8Array | Buffer | AnyResolver[]];
 type AnyResolver = UIntResolver | BigUIntResolver | VectorResolver;
+export type Resolvable = AnyResolver | Uint8Array | Buffer;
 
 export function getVectorLength(r: VectorResolver) {
   return  r[1] ? Array.isArray(r[1]) ? r[1].reduce((p, r) => p + getResolverLength(r), 0) : r[1].length : 0;
 }
 
-export function getResolverLength(r: AnyResolver | Uint8Array | Buffer): number {
+export function getResolverLength(r: Resolvable): number {
   if (r instanceof Uint8Array || r instanceof Buffer) return r.length;
   if (r[0] === 'v') {
     const srcLength = getVectorLength(r);
@@ -24,7 +25,7 @@ export function getResolverLength(r: AnyResolver | Uint8Array | Buffer): number 
   else return TYPE_LENGTH_MAP[r[0]];
 }
 
-export function serializeResolvers(resolvers: (AnyResolver | Uint8Array | Buffer)[]) { 
+export function serializeResolvers(resolvers: Resolvable[]) { 
   const length = resolvers.reduce((p, r) => p + getResolverLength(r), 0);
   const buffer = Buffer.alloc(length);
 
