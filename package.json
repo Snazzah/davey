@@ -36,9 +36,6 @@
 		"url": "https://github.com/sponsors/Snazzah"
 	},
 	"license": "MIT",
-	"dependencies": {
-		"@noble/curves": "^1.6.0"
-	},
 	"engines": {
 		"node": ">=18"
 	},

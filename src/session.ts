@@ -1,7 +1,6 @@
-import { p256 } from '@noble/curves/p256';
 import { CipherSuite, ProposalsOperationType } from './util/constants';
 import { serializeKeyPackage, serializeLeafNode } from './util/structs';
-import { DataCursor, readVarint } from './util';
+import { DataCursor, generateKey, KeyPair, readVarint, serializePublicKey } from './util';
 import { MLSState } from './state';
 
 // NOTE: group id === channel id
@@ -11,21 +10,27 @@ export class DAVESession {
   ciphersuite = CipherSuite.MLS_128_DHKEMP256_AES128GCM_SHA256_P256;
 
   userId = '';
+  credentialIdentity = Buffer.alloc(8);
   groupId = Buffer.alloc(8);
-  signingPriv?: Uint8Array | undefined;
-  hpkePriv?: Uint8Array | undefined;
+
+  signingKeys?: KeyPair | undefined;
+  signingPub?: Uint8Array | undefined;
+  hpkeKeys?: KeyPair | undefined;
+  hpkePub?: Uint8Array | undefined;
+
   leafnode?: Buffer | undefined;
-  joinInitPriv?: Uint8Array | undefined;
+  joinInitKeys?: KeyPair | undefined;
   joinKeyPackage?: Buffer | undefined;
   externalSender?: Buffer | undefined;
 
   pendingGroupState?: MLSState | undefined;
 
-  init(protocolVersion: number, userId: string, groupId: string, transientKey?: Uint8Array) {
+  async init(protocolVersion: number, userId: string, groupId: string, transientKey?: KeyPair) {
     this.reset();
     this.protocolVersion = protocolVersion;
     this.userId = userId;
     this.groupId.writeBigUInt64BE(BigInt(groupId));
+    this.credentialIdentity.writeBigUInt64BE(BigInt(userId));
 
     this.#createLeafNode(transientKey);
     this.#createPendingGroup();
@@ -41,6 +46,7 @@ export class DAVESession {
 
     this.protocolVersion = 0;
     this.groupId.fill(0);
+    this.credentialIdentity.fill(0);
   }
 
   #clearPendingState() {
@@ -48,10 +54,11 @@ export class DAVESession {
     // pendingGroupState_.reset();
     // pendingGroupCommit_.reset();
 
-    this.joinInitPriv = undefined;
+    this.joinInitKeys = undefined;
     this.joinKeyPackage = undefined;
 
-    this.hpkePriv = undefined;
+    this.hpkeKeys = undefined;
+    this.hpkePub = undefined;
     this.leafnode = undefined;
 
     // stateWithProposals_.reset();
@@ -167,26 +174,21 @@ export class DAVESession {
     return this.groupId.every((v) => v === 0);
   }
 
-  // TODO switch off of noble curves
-  async #createLeafNode(transientKey?: Uint8Array) {
-    if (!transientKey) {
-      // TODO signingKeyId_
-      transientKey = p256.utils.randomPrivateKey();
-    }
+  async #createLeafNode(transientKey?: KeyPair) {
+    if (!transientKey) transientKey = await generateKey();
 
-    this.signingPriv = transientKey;
-    this.hpkePriv = p256.utils.randomPrivateKey();
+    this.signingKeys = transientKey;
+    this.hpkeKeys = await generateKey();
 
-    const ciphersuite = CipherSuite.MLS_128_DHKEMP256_AES128GCM_SHA256_P256;
-    const signingPub = p256.getPublicKey(this.signingPriv, false);
-    const hpkePub = p256.getPublicKey(this.hpkePriv, false);
-    this.leafnode = await serializeLeafNode(ciphersuite, hpkePub, signingPub, this.userId, this.signingPriv);
+    this.signingPub = await serializePublicKey(this.signingKeys.publicKey);
+    this.hpkePub = await serializePublicKey(this.hpkeKeys.publicKey);
+    this.leafnode = await serializeLeafNode(this.ciphersuite, this.hpkePub, this.signingPub, this.userId, this.signingKeys.privateKey);
 
     console.log('Created MLS leaf node');
   }
 
   // TODO #createPendingGroup
-  #createPendingGroup() {
+  async #createPendingGroup() {
     if (this.#groupIdEmpty()) return console.warn('Cannot create MLS group without a group ID');
     if (!this.externalSender) return console.warn('Cannot create MLS group without ExternalSender');
     if (!this.leafnode) return console.warn('Cannot create MLS group without self leaf node');
@@ -228,10 +230,10 @@ export class DAVESession {
     if (!this.leafnode) return console.warn('Cannot initialize join key package without a leaf node');
     // auto ciphersuite = CiphersuiteForProtocolVersion(protocolVersion_);
 
-    this.joinInitPriv = p256.utils.randomPrivateKey();
-    const initPub = p256.getPublicKey(this.joinInitPriv, false);
+    this.joinInitKeys = await generateKey();
+    const initPub = await serializePublicKey(this.joinInitKeys.publicKey);
 
-    this.joinKeyPackage = await serializeKeyPackage(this.ciphersuite, initPub, this.leafnode, this.signingPriv!);
+    this.joinKeyPackage = await serializeKeyPackage(this.ciphersuite, initPub, this.leafnode, this.signingKeys!.privateKey);
 
     console.log('Generated key package');
   }

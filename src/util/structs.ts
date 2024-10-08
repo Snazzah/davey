@@ -1,7 +1,6 @@
-import { p256 } from '@noble/curves/p256';
 import { CredentialType, ProtocolVersion, CipherSuite, LeafNodeSource, WireFormat, SenderType, ContentType, ProposalOrRefType } from './constants';
 import { serializeResolvers } from './serialize';
-import { rawToPKCS8, signWithLabel } from '.';
+import { Key, signWithLabel } from '.';
 
 /** @see https://www.rfc-editor.org/rfc/rfc9420.html#section-7.2-2 */
 export async function serializeLeafNode(
@@ -9,7 +8,7 @@ export async function serializeLeafNode(
   encryptionKey: Uint8Array,
   signatureKey: Uint8Array,
   userId: string,
-  signingPrivateKey: Uint8Array
+  signingPrivateKey: Key
 ) {
   const content = serializeResolvers([
     ['v', encryptionKey], // encryption_key
@@ -36,7 +35,7 @@ export async function serializeLeafNode(
     // signature (appended later)
   ]);
 
-  const signature = await signWithLabel(rawToPKCS8(signingPrivateKey), 'LeafNodeTBS', content);
+  const signature = await signWithLabel(signingPrivateKey, 'LeafNodeTBS', content);
   return Buffer.concat([content, serializeResolvers([['v', signature]])]);
 }
 
@@ -45,7 +44,7 @@ export async function serializeKeyPackage(
   ciphersuite: CipherSuite,
   initKey: Uint8Array,
   leafnode: Buffer,
-  signingPrivateKey: Uint8Array
+  signingPrivateKey: Key
 ) {
   const content = serializeResolvers([
     ['u16', ProtocolVersion.MLS10], // protocol_version
@@ -56,7 +55,7 @@ export async function serializeKeyPackage(
     // signature (appended later)
   ]);
 
-  const signature = await signWithLabel(rawToPKCS8(signingPrivateKey), 'KeyPackageTBS', content);
+  const signature = await signWithLabel(signingPrivateKey, 'KeyPackageTBS', content);
   return Buffer.concat([content, serializeResolvers([['v', signature]])]);
 }
 

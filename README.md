@@ -15,7 +15,7 @@ Note that:
 - This may all be in vain! (if someone smarter than me makes a native thing instead)
 
 ## TODO
-- [ ] Remove noble/curves dependency in favor of webcrypto
+- [x] Remove noble/curves dependency in favor of webcrypto
 - [x] Create session
   - [x] Create key package
   - [x] Store external sender

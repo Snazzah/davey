@@ -1,9 +1,10 @@
 import crypto from 'node:crypto';
 import { serializeResolvers } from './serialize';
-import { p256 } from '@noble/curves/p256';
 
 const EMPTY_BUFFER = new Uint8Array(0);
 const subtle = crypto.webcrypto.subtle;
+export type KeyPair = crypto.webcrypto.CryptoKeyPair;
+export type Key = crypto.webcrypto.CryptoKey;
 
 /** @see https://www.rfc-editor.org/rfc/rfc9420.html#section-2.1.2 */
 export function readVarint(buf: Uint8Array, start: number) {
@@ -150,12 +151,23 @@ export async function generateKey() {
   return keypair;
 }
 
-export async function getPublicKey(keyPair: crypto.webcrypto.CryptoKeyPair) {
-  return new Uint8Array(await subtle.exportKey('raw', keyPair.publicKey));
+export async function serializePublicKey(publicKey: Key) {
+  return new Uint8Array(await subtle.exportKey('raw', publicKey));
+}
+
+export async function getPublicKey(privateKey: Key) {
+  const jwk = await subtle.exportKey('jwk', privateKey);
+  delete jwk.d;
+  return await subtle.importKey(
+    'jwk', jwk, {
+      name: 'ECDSA',
+      namedCurve: 'P-256'
+    }, true, ['verify'],
+  );
 }
 
 /** @see https://www.rfc-editor.org/rfc/rfc9420.html#section-5.1.2 */
-export async function verifyWithLabel(publicKey: Uint8Array | crypto.webcrypto.CryptoKey, label: string, sig: Uint8Array, msg: Uint8Array) {
+export async function verifyWithLabel(publicKey: Uint8Array | Key, label: string, sig: Uint8Array, msg: Uint8Array) {
   const labelledData = serializeResolvers([
     ['v', Buffer.from('MLS 1.0 ' + label)],
     ['v', msg]
@@ -174,7 +186,7 @@ export async function verifyWithLabel(publicKey: Uint8Array | crypto.webcrypto.C
 
 // TODO auto-detect pkcs8 and raw keys maybe
 /** @see https://www.rfc-editor.org/rfc/rfc9420.html#section-5.1.2 */
-export async function signWithLabel(privateKey: Uint8Array | crypto.webcrypto.CryptoKey, label: string, msg: Uint8Array) {
+export async function signWithLabel(privateKey: Uint8Array | Key, label: string, msg: Uint8Array) {
   const labelledData = serializeResolvers([
     ['v', Buffer.from('MLS 1.0 ' + label)],
     ['v', msg]
@@ -221,7 +233,7 @@ export async function decryptWithLabel(privateKey: Uint8Array, label: string, co
     ['v', context]
   ]);
   const key = await subtle.importKey(
-      'raw', privateKey, 'AES-GCM', false, ['decrypt'],
+    'raw', privateKey, 'AES-GCM', false, ['decrypt'],
   );
   return new Uint8Array(
     await subtle.decrypt(
