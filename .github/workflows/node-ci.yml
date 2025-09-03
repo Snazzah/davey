@@ -9,6 +9,10 @@ permissions:
   id-token: write
 'on':
   push:
+    paths:
+      - 'impit-node/**'
+      - 'impit/**'
+      - '.github/workflows/node-ci.yaml'
     branches:
       - main
       - master
@@ -20,7 +24,11 @@ permissions:
       - '**/*.gitignore'
       - .editorconfig
       - docs/**
-  pull_request: null
+  pull_request:
+    paths:
+      - 'impit-node/**'
+      - 'impit/**'
+      - '.github/workflows/node-test.yaml'
   workflow_call:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -37,7 +45,7 @@ jobs:
       - name: setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          package_json_file: ./package.json
+          package_json_file: ./davey-node/package.json
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -101,7 +109,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          package_json_file: ./package.json
+          package_json_file: ./davey-node/package.json
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -238,7 +246,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          package_json_file: ./package.json
+          package_json_file: ./davey-node/package.json
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -280,7 +288,7 @@ jobs:
       - name: setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          package_json_file: ./package.json
+          package_json_file: ./davey-node/package.json
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -340,7 +348,7 @@ jobs:
       - name: setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          package_json_file: ./package.json
+          package_json_file: ./davey-node/package.json
       - name: Setup node
         uses: actions/setup-node@v4
         with:
