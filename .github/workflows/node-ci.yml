@@ -32,10 +32,11 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: davey-node
     steps:
       - uses: actions/checkout@v5
-        with:
-          submodules: true
       - name: setup pnpm
         uses: pnpm/action-setup@v4
       - name: Setup node
@@ -44,22 +45,11 @@ jobs:
           node-version: 22
           cache: 'pnpm'
 
-      - name: Install
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy, rustfmt
-
       - name: Install dependencies
         run: pnpm install
 
       - name: ESLint
         run: pnpm lint
-
-      - name: Cargo fmt
-        run: cargo fmt -- --check
-
-      - name: Clippy
-        run: cargo clippy
 
   build:
     strategy:
@@ -109,8 +99,6 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     steps:
       - uses: actions/checkout@v5
-        with:
-          submodules: true
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
       - name: Setup node
@@ -180,8 +168,6 @@ jobs:
     name: Build FreeBSD
     steps:
       - uses: actions/checkout@v5
-        with:
-          submodules: true
       - name: Build
         id: build
         uses: cross-platform-actions/action@v0.27.0
