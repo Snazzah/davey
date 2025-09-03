@@ -416,9 +416,10 @@ impl DaveSession {
               debug!("Storing add proposal for user {incoming_user_id}");
 
               if let Some(ids) = expected_user_ids
-                && !ids.contains(&incoming_user_id) {
-                  return Err(ProcessProposalsError::UnexpectedUser(incoming_user_id));
-                }
+                && !ids.contains(&incoming_user_id)
+              {
+                return Err(ProcessProposalsError::UnexpectedUser(incoming_user_id));
+              }
 
               commit_adds_members = true;
             } else if let Proposal::Remove(remove_proposal) = proposal.proposal() {

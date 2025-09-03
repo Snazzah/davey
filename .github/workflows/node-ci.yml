@@ -10,9 +10,9 @@ permissions:
 'on':
   push:
     paths:
-      - 'impit-node/**'
-      - 'impit/**'
-      - '.github/workflows/node-ci.yaml'
+      - 'davey-node/**'
+      - 'davey/**'
+      - '.github/workflows/node-ci.yml'
     branches:
       - main
       - master
@@ -26,9 +26,9 @@ permissions:
       - docs/**
   pull_request:
     paths:
-      - 'impit-node/**'
-      - 'impit/**'
-      - '.github/workflows/node-test.yaml'
+      - 'davey-node/**'
+      - 'davey/**'
+      - '.github/workflows/node-ci.yml'
   workflow_call:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
