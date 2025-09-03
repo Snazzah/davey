@@ -224,7 +224,7 @@ impl DaveSession {
     } else {
       None
     };
-    let uids: Option<&[u64]> = uids_vec.as_ref().map(|v| v.as_slice());
+    let uids: Option<&[u64]> = uids_vec.as_deref();
     let result = self
       .inner
       .process_proposals(operation_type, &proposals, uids)
@@ -234,7 +234,7 @@ impl DaveSession {
       result
         .map(|cw| ProposalsResult {
           commit: Some(Buffer::from(cw.commit)),
-          welcome: cw.welcome.map(|w| Buffer::from(w)),
+          welcome: cw.welcome.map(Buffer::from),
         })
         .or_else(|| {
           Some(ProposalsResult {

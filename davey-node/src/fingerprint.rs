@@ -1,4 +1,3 @@
-use davey;
 use napi::{
   bindgen_prelude::{AsyncTask, Buffer},
   Env, Error, Task,

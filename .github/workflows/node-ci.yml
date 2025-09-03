@@ -32,13 +32,12 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: davey-node
     steps:
       - uses: actions/checkout@v5
       - name: setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          package_json_file: ./package.json
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -101,6 +100,8 @@ jobs:
       - uses: actions/checkout@v5
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          package_json_file: ./package.json
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -236,6 +237,8 @@ jobs:
       - uses: actions/checkout@v5
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          package_json_file: ./package.json
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -276,6 +279,8 @@ jobs:
       - uses: actions/checkout@v5
       - name: setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          package_json_file: ./package.json
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -334,6 +339,8 @@ jobs:
       - uses: actions/checkout@v5
       - name: setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          package_json_file: ./package.json
       - name: Setup node
         uses: actions/setup-node@v4
         with:
