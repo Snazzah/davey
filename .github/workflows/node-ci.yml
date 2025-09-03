@@ -192,6 +192,7 @@ jobs:
             sudo npm install -g corepack
             curl https://sh.rustup.rs -sSf --output rustup.sh
             sh rustup.sh -y --profile minimal --default-toolchain beta
+            cd davey-node
             corepack prepare
             corepack enable
             source "$HOME/.cargo/env"
@@ -206,7 +207,6 @@ jobs:
             whoami
             env
             freebsd-version
-            cd davey-node
             pnpm install
             pnpm build
             rm -rf node_modules
