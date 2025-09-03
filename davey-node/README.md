@@ -42,7 +42,7 @@ if (session.ready) {
   // Encrypt packets with a specified media type and codec, use this before transport encryption
   session.encrypt(MediaType.AUDIO, Codec.OPUS, packet);
   // Really only opus is supported right now so just use the shorthand method
-  session.encrypt_opus(packet);
+  session.encryptOpus(packet);
   // Decrypt a packet from a user, use this after transport decryption
   session.decrypt(userId, MediaType.AUDIO, incomingPacket);
 }

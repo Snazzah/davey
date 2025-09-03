@@ -258,7 +258,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: bindings-${{ matrix.settings.target }}
-          path: .
+          path: ./davey-node
       - name: List packages
         run: ls -R .
         shell: bash
@@ -321,7 +321,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: bindings-${{ matrix.target }}
-          path: .
+          path: ./davey-node
       - name: List packages
         run: ls -R .
         shell: bash
@@ -361,7 +361,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: bindings-wasm32-wasip1-threads
-          path: .
+          path: ./davey-node
       - name: List packages
         run: ls -R .
         shell: bash
