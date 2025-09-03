@@ -167,7 +167,7 @@ jobs:
         if: matrix.settings.target == 'wasm32-wasip1-threads'
         with:
           name: bindings-${{ matrix.settings.target }}
-          path: '*.wasm'
+          path: './davey-node/*.wasm'
           if-no-files-found: error
   build-freebsd:
     runs-on: ubuntu-latest
@@ -206,6 +206,7 @@ jobs:
             whoami
             env
             freebsd-version
+            cd davey-node
             pnpm install
             pnpm build
             rm -rf node_modules
