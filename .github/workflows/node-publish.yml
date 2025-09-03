@@ -1,0 +1,86 @@
+name: "[davey-node] Release to npm"
+env:
+  DEBUG: napi:*
+  APP_NAME: davey
+  MACOSX_DEPLOYMENT_TARGET: '10.13'
+  CARGO_INCREMENTAL: '1'
+permissions:
+  contents: write
+  id-token: write
+'on':
+  workflow_dispatch:
+jobs:
+  test:
+    name: Build and test
+    uses: ./.github/workflows/node-ci.yml
+    secrets: inherit
+
+  publish:
+    name: Publish
+    needs: [test]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: impit-node
+    outputs:
+      version: ${{ steps.set-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install
+      - name: Download all artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+      - name: Create npm dirs
+        run: pnpm napi create-npm-dirs
+      - name: Move artifacts
+        run: pnpm artifacts
+      - name: List packages
+        run: ls -R ./npm
+        shell: bash
+      - name: Publish
+        run: |
+          npm config set provenance true
+          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
+          npm publish --access public
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Capture package version
+        id: set-version
+        shell: bash
+        run: |
+          VERSION=$(node -p 'require("./package.json").version')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  release:
+    name: Create release
+    needs: [publish]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Generate a changelog
+        uses: orhun/git-cliff-action@v4
+        id: git-cliff
+        with:
+          config: cliff.toml
+          args: --ignore-tags="(py)-*" --include-path="./davey-node/**" --include-path="./davey/**"
+        env:
+          OUTPUT: davey-node/CHANGELOG.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "js-${{ needs.publish.outputs.version }}"
+          name: "davey-node@${{ needs.publish.outputs.version }}"
+          target_commitish: ${{ github.sha }}
+          body: ${{ steps.git-cliff.outputs.content }}

@@ -75,7 +75,6 @@ bun.lockb
 # Rust
 debug/
 target/
-Cargo.lock
 *.node
 **/*.rs.bk
 *.pdb

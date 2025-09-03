@@ -1,0 +1,21 @@
+[package]
+edition = "2021"
+name = "snazzah_davey"
+version = "0.0.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+env_logger = "0.11.6"
+davey = { path = "../davey", features = ["napi"] }
+napi = { version = "3.2.4", features = ["napi6"] }
+napi-derive = "3.2.4"
+log = "0.4.27"
+
+[build-dependencies]
+napi-build = "2.0.1"
+
+[profile.release]
+lto = true
+strip = "symbols"

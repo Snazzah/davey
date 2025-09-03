@@ -1,0 +1,124 @@
+{
+  "name": "@snazzah/davey",
+  "version": "0.1.6",
+  "description": "DAVE protocol implementation",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "browser": "browser.js",
+  "repository": "https://github.com/Snazzah/davey",
+  "license": "MIT",
+  "author": {
+    "name": "Snazzah",
+    "email": "me@snazzah.com",
+    "url": "https://snazzah.com/"
+  },
+  "funding": {
+    "url": "https://github.com/sponsors/Snazzah"
+  },
+  "keywords": [
+    "discord",
+    "e2ee",
+    "mls",
+    "napi-rs",
+    "NAPI",
+    "N-API",
+    "Rust",
+    "node-addon",
+    "node-addon-api"
+  ],
+  "files": [
+    "index.d.ts",
+    "index.js",
+    "browser.js"
+  ],
+  "napi": {
+    "binaryName": "davey",
+    "targets": [
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "x86_64-unknown-linux-gnu",
+      "x86_64-pc-windows-msvc",
+      "x86_64-unknown-linux-musl",
+      "aarch64-unknown-linux-gnu",
+      "i686-pc-windows-msvc",
+      "armv7-unknown-linux-gnueabihf",
+      "aarch64-linux-android",
+      "x86_64-unknown-freebsd",
+      "aarch64-unknown-linux-musl",
+      "aarch64-pc-windows-msvc",
+      "armv7-linux-androideabi",
+      "wasm32-wasi-preview1-threads"
+    ]
+  },
+  "engines": {
+    "node": ">= 10"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "scripts": {
+    "artifacts": "napi artifacts",
+    "bench": "node --import @oxc-node/core/register --expose-gc benchmark/bench.ts",
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform",
+    "format": "run-p format:prettier format:rs format:toml",
+    "changelog": "node --import @oxc-node/core/register scripts/changelog.mts",
+    "format:prettier": "prettier . -w",
+    "format:toml": "taplo format",
+    "format:rs": "cargo fmt",
+    "lint": "oxlint",
+    "prepublishOnly": "napi prepublish -t npm --no-gh-release",
+    "test": "ava",
+    "version": "napi version"
+  },
+  "devDependencies": {
+    "@emnapi/core": "^1.3.1",
+    "@emnapi/runtime": "^1.3.1",
+    "@napi-rs/cli": "^3.1.5",
+    "@napi-rs/wasm-runtime": "^0.2.7",
+    "@noble/hashes": "1.5.0",
+    "@oxc-node/core": "^0.0.20",
+    "@taplo/cli": "^0.7.0",
+    "@types/node": "^22.13.5",
+    "@tybys/wasm-util": "^0.9.0",
+    "ava": "^6.2.0",
+    "base64-js": "1.5.1",
+    "emnapi": "^1.3.1",
+    "mitata": "^1.0.34",
+    "npm-run-all2": "^7.0.2",
+    "oxlint": "^0.15.12",
+    "prettier": "^3.5.2",
+    "typescript": "^5.7.3"
+  },
+  "ava": {
+    "extensions": {
+      "ts": "module"
+    },
+    "files": [
+      "test/**/*"
+    ],
+    "timeout": "2m",
+    "workerThreads": false,
+    "environmentVariables": {
+      "TS_NODE_PROJECT": "./tsconfig.json"
+    },
+    "nodeArguments": [
+      "--import",
+      "@oxc-node/core/register"
+    ]
+  },
+  "prettier": {
+    "printWidth": 120,
+    "semi": true,
+    "trailingComma": "all",
+    "singleQuote": true,
+    "arrowParens": "always"
+  },
+  "packageManager": "pnpm@10.6.3",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@swc/core"
+    ]
+  }
+}
