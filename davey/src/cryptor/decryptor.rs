@@ -1,11 +1,11 @@
+#[cfg(feature = "napi")]
+use napi_derive::napi;
 use std::{
   cmp::min,
   collections::{HashMap, VecDeque},
   sync::Arc,
   time::{Duration, Instant},
 };
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 
 use tracing::{trace, warn};
 

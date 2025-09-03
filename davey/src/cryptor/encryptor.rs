@@ -1,6 +1,6 @@
-use std::{collections::HashMap, time::Instant};
 #[cfg(feature = "napi")]
 use napi_derive::napi;
+use std::{collections::HashMap, time::Instant};
 
 use tracing::warn;
 

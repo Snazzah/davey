@@ -1,3 +1,5 @@
+#[cfg(feature = "napi")]
+use napi_derive::napi;
 use num_derive::FromPrimitive;
 use openmls::{
   group::{ProcessMessageError, *},
@@ -8,8 +10,6 @@ use openmls_basic_credential::SignatureKeyPair;
 use openmls_rust_crypto::OpenMlsRustCrypto;
 use std::{borrow::Cow, collections::HashMap, fmt::Debug, num::NonZeroU16};
 use tracing::{debug, trace, warn};
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 
 use crate::{
   errors::*, generate_key_fingerprint, pairwise_fingerprints_internal,

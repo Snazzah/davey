@@ -8,7 +8,9 @@ mod fingerprint;
 mod session;
 mod signing_key_pair;
 
-pub use cryptor::{Codec, MediaType, MAX_FRAMES_PER_SECOND, OPUS_SILENCE_PACKET, EncryptionStats, DecryptionStats};
+pub use cryptor::{
+  Codec, DecryptionStats, EncryptionStats, MAX_FRAMES_PER_SECOND, MediaType, OPUS_SILENCE_PACKET,
+};
 pub use displayable_code::*;
 pub use fingerprint::*;
 pub use session::*;

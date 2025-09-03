@@ -1,8 +1,8 @@
+use davey;
 use napi::{
   bindgen_prelude::{AsyncTask, Buffer},
   Env, Error, Task,
 };
-use davey;
 
 /// Generate a key fingerprint.
 /// @see https://daveprotocol.com/#verification-fingerprint
@@ -62,8 +62,14 @@ impl Task for AsyncPairwiseFingerprint {
       .parse::<u64>()
       .map_err(|_| napi_invalid_arg_error!("Invalid user id"))?;
 
-    let output = davey::generate_pairwise_fingerprint(self.version, &self.key_a, user_id_a, &self.key_b, user_id_b)
-      .map_err(|e| napi_invalid_arg_error!("failed to generate pairwise fingerprint: {:?}", e))?;
+    let output = davey::generate_pairwise_fingerprint(
+      self.version,
+      &self.key_a,
+      user_id_a,
+      &self.key_b,
+      user_id_b,
+    )
+    .map_err(|e| napi_invalid_arg_error!("failed to generate pairwise fingerprint: {:?}", e))?;
 
     Ok(output)
   }

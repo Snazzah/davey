@@ -1,9 +1,12 @@
 use std::num::NonZeroU16;
 
-use napi::bindgen_prelude::{AsyncTask, Buffer};
 use crate::{AsyncPairwiseFingerprintSession, AsyncSessionVerificationCode, SigningKeyPair};
+use napi::bindgen_prelude::{AsyncTask, Buffer};
 
-pub use davey::{SessionStatus, ProposalsOperationType, DAVE_PROTOCOL_VERSION, Codec, MediaType, EncryptionStats, DecryptionStats};
+pub use davey::{
+  Codec, DecryptionStats, EncryptionStats, MediaType, ProposalsOperationType, SessionStatus,
+  DAVE_PROTOCOL_VERSION,
+};
 
 #[napi(js_name = "DAVESession")]
 pub struct DaveSession {
@@ -44,7 +47,7 @@ impl DaveSession {
     protocol_version: u16,
     user_id: String,
     channel_id: String,
-    key_pair: Option<SigningKeyPair>
+    key_pair: Option<SigningKeyPair>,
   ) -> napi::Result<(NonZeroU16, u64, u64, Option<davey::SigningKeyPair>)> {
     let protocol_version = NonZeroU16::new(protocol_version)
       .ok_or(napi_invalid_arg_error!("Unsupported protocol version"))?;
@@ -74,12 +77,14 @@ impl DaveSession {
     protocol_version: u16,
     user_id: String,
     channel_id: String,
-    key_pair: Option<SigningKeyPair>
+    key_pair: Option<SigningKeyPair>,
   ) -> napi::Result<()> {
     let (protocol_version, uid, cid, signing_key_pair) =
       Self::common_init(protocol_version, user_id, channel_id, key_pair)?;
 
-    self.inner.reinit(protocol_version, uid, cid, signing_key_pair.as_ref())
+    self
+      .inner
+      .reinit(protocol_version, uid, cid, signing_key_pair.as_ref())
       .map_err(|err| napi_error!("Failed to re-initialize session: {err:?}"))?;
 
     Ok(())
@@ -89,7 +94,9 @@ impl DaveSession {
   /// If you want to re-initialize the session, use {@link reinit}.
   #[napi]
   pub fn reset(&mut self) -> napi::Result<()> {
-    self.inner.reset()
+    self
+      .inner
+      .reset()
       .map_err(|err| napi_error!("Failed to reset session: {err:?}"))?;
 
     Ok(())
@@ -146,7 +153,10 @@ impl DaveSession {
   /// Get the epoch authenticator of this session's group.
   #[napi]
   pub fn get_epoch_authenticator(&self) -> Option<Buffer> {
-    self.inner.get_epoch_authenticator().map(|ea| Buffer::from(ea.as_slice()))
+    self
+      .inner
+      .get_epoch_authenticator()
+      .map(|ea| Buffer::from(ea.as_slice()))
   }
 
   /// Get the voice privacy code of this session's group.
@@ -156,7 +166,9 @@ impl DaveSession {
   /// @see https://daveprotocol.com/#displayable-codes
   #[napi(getter)]
   pub fn voice_privacy_code(&self) -> String {
-    self.inner.voice_privacy_code()
+    self
+      .inner
+      .voice_privacy_code()
       .map(|vpc| vpc.to_string())
       .unwrap_or("".to_string())
   }
@@ -167,7 +179,9 @@ impl DaveSession {
   /// @see https://daveprotocol.com/#dave_mls_external_sender_package-25
   #[napi]
   pub fn set_external_sender(&mut self, external_sender_data: Buffer) -> napi::Result<()> {
-    self.inner.set_external_sender(&external_sender_data)
+    self
+      .inner
+      .set_external_sender(&external_sender_data)
       .map_err(|err| napi_error!("Failed to set external sender: {err:?}"))?;
 
     Ok(())
@@ -177,7 +191,9 @@ impl DaveSession {
   /// Key packages are not meant to be reused, and will be recreated on each call of this function.
   #[napi]
   pub fn get_serialized_key_package(&mut self) -> napi::Result<Buffer> {
-    let key_package = self.inner.create_key_package()
+    let key_package = self
+      .inner
+      .create_key_package()
       .map_err(|err| napi_error!("Failed to create key package: {err:?}"))?;
 
     Ok(Buffer::from(key_package))
@@ -199,29 +215,34 @@ impl DaveSession {
     let uids_vec = if let Some(ids) = recognized_user_ids {
       let mut parsed = Vec::with_capacity(ids.len());
       for s in ids {
-      let id = s.parse::<u64>()
-        .map_err(|_| napi_invalid_arg_error!("Invalid recognized user id"))?;
-      parsed.push(id);
+        let id = s
+          .parse::<u64>()
+          .map_err(|_| napi_invalid_arg_error!("Invalid recognized user id"))?;
+        parsed.push(id);
       }
       Some(parsed)
     } else {
       None
     };
     let uids: Option<&[u64]> = uids_vec.as_ref().map(|v| v.as_slice());
-    let result = self.inner.process_proposals(operation_type, &proposals, uids)
+    let result = self
+      .inner
+      .process_proposals(operation_type, &proposals, uids)
       .map_err(|err| napi_error!("Failed to process proposals: {err:?}"))?;
 
     Ok(
       result
         .map(|cw| ProposalsResult {
           commit: Some(Buffer::from(cw.commit)),
-          welcome: cw.welcome.map(|w| Buffer::from(w))
+          welcome: cw.welcome.map(|w| Buffer::from(w)),
         })
-        .or_else(|| Some(ProposalsResult {
-          commit: None,
-          welcome: None
-        }))
-        .unwrap()
+        .or_else(|| {
+          Some(ProposalsResult {
+            commit: None,
+            welcome: None,
+          })
+        })
+        .unwrap(),
     )
   }
 
@@ -231,7 +252,9 @@ impl DaveSession {
   /// @see https://daveprotocol.com/#dave_mls_welcome-30
   #[napi]
   pub fn process_welcome(&mut self, welcome: Buffer) -> napi::Result<()> {
-    self.inner.process_welcome(&welcome)
+    self
+      .inner
+      .process_welcome(&welcome)
       .map_err(|err| napi_error!("Failed to process welcome: {err:?}"))?;
 
     Ok(())
@@ -243,7 +266,9 @@ impl DaveSession {
   /// @see https://daveprotocol.com/#dave_mls_announce_commit_transition-29
   #[napi]
   pub fn process_commit(&mut self, commit: Buffer) -> napi::Result<()> {
-    self.inner.process_commit(&commit)
+    self
+      .inner
+      .process_commit(&commit)
       .map_err(|err| napi_error!("Failed to process commit: {err:?}"))?;
 
     Ok(())
@@ -297,7 +322,9 @@ impl DaveSession {
       .parse::<u64>()
       .map_err(|_| napi_invalid_arg_error!("Invalid user id"))?;
 
-    let fingerprints = self.inner.get_key_fingerprint_pair(version, their_uid)
+    let fingerprints = self
+      .inner
+      .get_key_fingerprint_pair(version, their_uid)
       .map_err(|err| napi_error!("Failed to get key fingerprint pair: {err:?}"))?;
 
     Ok(fingerprints)
@@ -314,7 +341,9 @@ impl DaveSession {
     codec: Codec,
     packet: Buffer,
   ) -> napi::Result<Buffer> {
-    let result = self.inner.encrypt(media_type, codec, &packet)
+    let result = self
+      .inner
+      .encrypt(media_type, codec, &packet)
       .map_err(|err| napi_error!("Failed to encrypt: {err:?}"))?;
 
     Ok(Buffer::from(result.into_owned()))
@@ -331,11 +360,11 @@ impl DaveSession {
   /// Get encryption stats.
   /// @param [mediaType=MediaType.AUDIO] The media type, defaults to `MediaType.AUDIO`
   #[napi]
-  pub fn get_encryption_stats(
-    &self,
-    media_type: Option<MediaType>,
-  ) -> Option<EncryptionStats> {
-    self.inner.get_encryption_stats(media_type).map(|s| s.to_owned())
+  pub fn get_encryption_stats(&self, media_type: Option<MediaType>) -> Option<EncryptionStats> {
+    self
+      .inner
+      .get_encryption_stats(media_type)
+      .map(|s| s.to_owned())
   }
 
   /// Decrypt an end-to-end encrypted packet.
@@ -352,8 +381,10 @@ impl DaveSession {
     let uid = user_id
       .parse::<u64>()
       .map_err(|_| napi_invalid_arg_error!("Invalid user id"))?;
-  
-    let result = self.inner.decrypt(uid, media_type, &packet)
+
+    let result = self
+      .inner
+      .decrypt(uid, media_type, &packet)
       .map_err(|err| napi_error!("Failed to decrypt: {err:?}"))?;
 
     Ok(Buffer::from(result))
@@ -372,20 +403,27 @@ impl DaveSession {
       .parse::<u64>()
       .map_err(|_| napi_invalid_arg_error!("Invalid user id"))?;
 
-    let result = self.inner.get_decryption_stats(uid, media_type.unwrap_or(MediaType::AUDIO))
+    let result = self
+      .inner
+      .get_decryption_stats(uid, media_type.unwrap_or(MediaType::AUDIO))
       .map_err(|err| napi_error!("Failed to get decryption stats: {err:?}"))?;
 
     Ok(result.map(|s| s.to_owned()))
   }
 
-  
   /// Get the IDs of the users in the current group.
   /// @returns An array of user IDs, or an empty array if there is no group.
   #[napi]
   pub fn get_user_ids(&self) -> Vec<String> {
-    self.inner
+    self
+      .inner
       .get_user_ids()
-      .map(|ids| ids.into_iter().map(|id| id.to_string()).collect::<Vec<String>>())
+      .map(|ids| {
+        ids
+          .into_iter()
+          .map(|id| id.to_string())
+          .collect::<Vec<String>>()
+      })
       .unwrap_or_default()
   }
 
@@ -405,7 +443,9 @@ impl DaveSession {
   /// @param [transition_expiry=10] The transition expiry (in seconds) to use when disabling passthrough mode, defaults to 10 seconds
   #[napi]
   pub fn set_passthrough_mode(&mut self, passthrough_mode: bool, transition_expiry: Option<u32>) {
-    self.inner.set_passthrough_mode(passthrough_mode, transition_expiry);
+    self
+      .inner
+      .set_passthrough_mode(passthrough_mode, transition_expiry);
   }
 
   /// @ignore

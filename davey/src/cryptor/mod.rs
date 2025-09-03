@@ -1,6 +1,6 @@
-use std::time::Duration;
 #[cfg(feature = "napi")]
 use napi_derive::napi;
+use std::time::Duration;
 
 pub const OPUS_SILENCE_PACKET: [u8; 3] = [0xF8, 0xFF, 0xFE];
 
