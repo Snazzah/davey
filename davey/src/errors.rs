@@ -245,7 +245,7 @@ pub enum ExpiringCipherError {
   #[error("failed to get key: {0}")]
   GetKey(#[from] GetKeyError),
   #[error("failed to create cipher: {0}")]
-  CreatingCipherFailed(#[from] aes_gcm::aes::cipher::InvalidLength),
+  CreatingCipherFailed(#[from] crate::aes_gcm::aes::cipher::InvalidLength),
 }
 
 #[derive(Error, Debug)]

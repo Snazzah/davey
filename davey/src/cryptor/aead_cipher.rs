@@ -1,4 +1,4 @@
-use aes_gcm::{AesGcm, KeyInit, aead::AeadMutInPlace, aes::Aes128};
+use crate::aes_gcm::{AesGcm, KeyInit, aead::AeadMutInPlace, aes::Aes128};
 use sha2::digest::{
   InvalidLength,
   consts::{U8, U12},
@@ -22,7 +22,7 @@ impl AeadCipher {
     buffer: &mut [u8],
     nonce: &[u8],
     aad: &[u8],
-  ) -> aes_gcm::aead::Result<[u8; 8]> {
+  ) -> crate::aes_gcm::aead::Result<[u8; 8]> {
     self
       .key
       .encrypt_in_place_detached(nonce.into(), aad, buffer)
@@ -35,7 +35,7 @@ impl AeadCipher {
     nonce: &[u8],
     aad: &[u8],
     tag: &[u8],
-  ) -> aes_gcm::aead::Result<()> {
+  ) -> crate::aes_gcm::aead::Result<()> {
     self
       .key
       .decrypt_in_place_detached(nonce.into(), aad, buffer, tag.into())

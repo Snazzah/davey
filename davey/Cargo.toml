@@ -5,13 +5,13 @@ version = "0.0.1"
 authors = ["Snazzah <me@snazzah.com>"]
 
 [dependencies]
-openmls = { git = "https://github.com/Snazzah/openmls.git", rev = "3f237fb29e0d61cedd43223a6d6df1fbc0a042ad", features = ["js"] }
-openmls_basic_credential = { git = "https://github.com/Snazzah/openmls.git", rev = "3f237fb29e0d61cedd43223a6d6df1fbc0a042ad" }
-openmls_rust_crypto = { git = "https://github.com/Snazzah/openmls.git", rev = "3f237fb29e0d61cedd43223a6d6df1fbc0a042ad" }
+openmls = { git = "https://github.com/Snazzah/openmls.git", rev = "3f237fb29e0d61cedd43223a6d6df1fbc0a042ad", features = ["js"], version = "0.6.0" }
+openmls_basic_credential = { git = "https://github.com/Snazzah/openmls.git", rev = "3f237fb29e0d61cedd43223a6d6df1fbc0a042ad", version = "0.3.0" }
+openmls_rust_crypto = { git = "https://github.com/Snazzah/openmls.git", rev = "3f237fb29e0d61cedd43223a6d6df1fbc0a042ad", version = "0.3.0" }
 tracing = "0.1.41"
 thiserror = "2.0.12"
 # Crypto utils
-aes-gcm = { path = "./aes-gcm" }
+# aes-gcm = { path = "./aes-gcm" }
 p256 = { version = "0.13" }
 rand = "0.8"
 sha2 = { version = "0.10" }
@@ -22,6 +22,14 @@ num-traits = "0.2.19"
 # NAPI
 napi-derive = { version = "3", optional = true }
 napi = { version = "3", optional = true }
+# aes-gcm
+aead = { version = "0.5", default-features = false }
+aes = { version = "0.8" }
+cipher = { version = "0.4" }
+ctr = { version = "0.9" }
+ghash = { version = "0.5", default-features = false }
+subtle = { version = "2", default-features = false }
+hex-literal = { version = "0.3" }
 
 [features]
 default = []

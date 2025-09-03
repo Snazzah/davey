@@ -1,12 +1,9 @@
-# Davey! [<small>How ya doin?</small>](https://www.youtube.com/watch?v=TBbxlP6NXXs)
+# davey
 
-A [Discord Audio & Video End-to-End Encryption (DAVE) Protocol](https://daveprotocol.com/) Rust implementation using [OpenMLS](https://openmls.tech/).
+A Rust implementation of DAVE.
 
-### Usage from Node/JavaScript
-The Node implementation is available under the `@snazzah/davey` package. Check the [README](/davey-node/README.md) for more info.
-
-### Usage from Rust
-Right now there isn't any solid docs on using the Rust package, but it's available at `davey`.
+> [NOTE]
+> I needed to fork [`aes-gcm`](https://github.com/RustCrypto/AEADs/tree/master/aes-gcm) and include it inside the crate so I could actually use 8-byte truncated tags as the original crate doesn't let me validate 8-byte tags.
 
 Note that if you want to use this library in your rust project, you have to add the following dependencies to your `Cargo.toml` file:
 ```toml

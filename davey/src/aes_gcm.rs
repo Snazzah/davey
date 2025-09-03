@@ -1,109 +1,8 @@
-#![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg))]
-#![doc = include_str!("../README.md")]
-#![doc(
-  html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
-  html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg"
-)]
 #![deny(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms)]
 
-//! # Usage
-//!
-//! Simple usage (allocating, no associated data):
-//!
-//! ```
-//! use aes_gcm::{
-//!     aead::{Aead, AeadCore, KeyInit, OsRng},
-//!     Aes256Gcm, Nonce, Key // Or `Aes128Gcm`
-//! };
-//!
-//! # fn gen_key() -> Result<(), core::array::TryFromSliceError> {
-//! // The encryption key can be generated randomly:
-//! # #[cfg(all(feature = "getrandom", feature = "std"))] {
-//! let key = Aes256Gcm::generate_key(OsRng);
-//! # }
-//!
-//! // Transformed from a byte array:
-//! let key: &[u8; 32] = &[42; 32];
-//! let key: &Key<Aes256Gcm> = key.into();
-//!
-//! // Note that you can get byte array from slice using the `TryInto` trait:
-//! let key: &[u8] = &[42; 32];
-//! let key: [u8; 32] = key.try_into()?;
-//! # Ok(()) }
-//!
-//! # fn main() -> Result<(), aes_gcm::Error> {
-//! // Alternatively, the key can be transformed directly from a byte slice
-//! // (panicks on length mismatch):
-//! # let key: &[u8] = &[42; 32];
-//! let key = Key::<Aes256Gcm>::from_slice(key);
-//!
-//! let cipher = Aes256Gcm::new(&key);
-//! let nonce = Aes256Gcm::generate_nonce(&mut OsRng); // 96-bits; unique per message
-//! let ciphertext = cipher.encrypt(&nonce, b"plaintext message".as_ref())?;
-//! let plaintext = cipher.decrypt(&nonce, ciphertext.as_ref())?;
-//! assert_eq!(&plaintext, b"plaintext message");
-//! # Ok(())
-//! # }
-//! ```
-//!
-//! ## In-place Usage (eliminates `alloc` requirement)
-//!
-//! This crate has an optional `alloc` feature which can be disabled in e.g.
-//! microcontroller environments that don't have a heap.
-//!
-//! The [`AeadInPlace::encrypt_in_place`] and [`AeadInPlace::decrypt_in_place`]
-//! methods accept any type that impls the [`aead::Buffer`] trait which
-//! contains the plaintext for encryption or ciphertext for decryption.
-//!
-//! Note that if you enable the `heapless` feature of this crate,
-//! you will receive an impl of [`aead::Buffer`] for `heapless::Vec`
-//! (re-exported from the [`aead`] crate as [`aead::heapless::Vec`]),
-//! which can then be passed as the `buffer` parameter to the in-place encrypt
-//! and decrypt methods:
-//!
-#![cfg_attr(
-  all(feature = "getrandom", feature = "heapless", feature = "std"),
-  doc = "```"
-)]
-#![cfg_attr(
-  not(all(feature = "getrandom", feature = "heapless", feature = "std")),
-  doc = "```ignore"
-)]
-//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! use aes_gcm::{
-//!     aead::{AeadCore, AeadInPlace, KeyInit, OsRng, heapless::Vec},
-//!     Aes256Gcm, Nonce, // Or `Aes128Gcm`
-//! };
-//!
-//! let key = Aes256Gcm::generate_key(&mut OsRng);
-//! let cipher = Aes256Gcm::new(&key);
-//! let nonce = Aes256Gcm::generate_nonce(&mut OsRng); // 96-bits; unique per message
-//!
-//! let mut buffer: Vec<u8, 128> = Vec::new(); // Note: buffer needs 16-bytes overhead for auth tag
-//! buffer.extend_from_slice(b"plaintext message");
-//!
-//! // Encrypt `buffer` in-place, replacing the plaintext contents with ciphertext
-//! cipher.encrypt_in_place(&nonce, b"", &mut buffer)?;
-//!
-//! // `buffer` now contains the message ciphertext
-//! assert_ne!(&buffer, b"plaintext message");
-//!
-//! // Decrypt `buffer` in-place, replacing its ciphertext context with the original plaintext
-//! cipher.decrypt_in_place(&nonce, b"", &mut buffer)?;
-//! assert_eq!(&buffer, b"plaintext message");
-//! # Ok(())
-//! # }
-//! ```
-//!
-//! Similarly, enabling the `arrayvec` feature of this crate will provide an impl of
-//! [`aead::Buffer`] for `arrayvec::ArrayVec` (re-exported from the [`aead`] crate as
-//! [`aead::arrayvec::ArrayVec`]).
 
 pub use aead::{self, AeadCore, AeadInPlace, Error, Key, KeyInit, KeySizeUser};
-
-#[cfg(feature = "aes")]
 pub use aes;
 
 use cipher::{
@@ -114,10 +13,7 @@ use cipher::{
 use core::marker::PhantomData;
 use ghash::{universal_hash::UniversalHash, GHash};
 
-#[cfg(feature = "zeroize")]
-use zeroize::Zeroize;
 
-#[cfg(feature = "aes")]
 use aes::{cipher::consts::U12, Aes128, Aes256};
 
 /// Maximum length of associated data.
@@ -158,13 +54,9 @@ mod private {
 }
 
 /// AES-GCM with a 128-bit key and 96-bit nonce.
-#[cfg(feature = "aes")]
-#[cfg_attr(docsrs, doc(cfg(feature = "aes")))]
 pub type Aes128Gcm = AesGcm<Aes128, U12>;
 
 /// AES-GCM with a 256-bit key and 96-bit nonce.
-#[cfg(feature = "aes")]
-#[cfg_attr(docsrs, doc(cfg(feature = "aes")))]
 pub type Aes256Gcm = AesGcm<Aes256, U12>;
 
 /// AES block.
@@ -237,9 +129,6 @@ where
 
     let ghash = GHash::new(&ghash_key);
 
-    #[cfg(feature = "zeroize")]
-    ghash_key.zeroize();
-
     Self {
       cipher,
       ghash,
@@ -277,8 +166,6 @@ where
 
     let (ctr, mask) = self.init_ctr(nonce);
 
-    // TODO(tarcieri): interleave encryption with GHASH
-    // See: <https://github.com/RustCrypto/AEADs/issues/74>
     ctr.apply_keystream_partial(buffer.into());
 
     let full_tag = self.compute_tag(mask, associated_data, buffer);
@@ -298,8 +185,6 @@ where
 
     let (ctr, mask) = self.init_ctr(nonce);
 
-    // TODO(tarcieri): interleave encryption with GHASH
-    // See: <https://github.com/RustCrypto/AEADs/issues/74>
     let expected_tag = self.compute_tag(mask, associated_data, buffer);
 
     use subtle::ConstantTimeEq;
