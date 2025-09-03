@@ -13,17 +13,11 @@ permissions:
       - 'davey-node/**'
       - 'davey/**'
       - '.github/workflows/node-ci.yml'
-    branches:
-      - main
-      - master
+    # branches:
+    #   - main
+    #   - master
     tags-ignore:
       - '**'
-    paths-ignore:
-      - '**/*.md'
-      - LICENSE
-      - '**/*.gitignore'
-      - .editorconfig
-      - docs/**
   pull_request:
     paths:
       - 'davey-node/**'
