@@ -7,16 +7,3 @@ The Node implementation is available under the `@snazzah/davey` package. Check t
 
 ### Usage from Rust
 Right now there isn't any solid docs on using the Rust package, but it's available at `davey`.
-
-Note that if you want to use this library in your rust project, you have to add the following dependencies to your `Cargo.toml` file:
-```toml
-[dependencies]
-impit = { version = "*" }
-
-[patch.crates-io]
-openmls = { git = "https://github.com/Snazzah/openmls.git", rev = "3f237fb29e0d61cedd43223a6d6df1fbc0a042ad" }
-openmls_basic_credential = { git = "https://github.com/Snazzah/openmls.git", rev = "3f237fb29e0d61cedd43223a6d6df1fbc0a042ad" }
-openmls_rust_crypto = { git = "https://github.com/Snazzah/openmls.git", rev = "3f237fb29e0d61cedd43223a6d6df1fbc0a042ad" }
-```
-
-The patched dependencies make it so that `davey` can set the ProposalOrRef type and forcefully only return proposal refs when making commits.

@@ -325,7 +325,7 @@ dependencies = [
 
 [[package]]
 name = "davey"
-version = "0.0.1-pre.1"
+version = "0.0.1-pre.2"
 dependencies = [
  "aead",
  "aes",
