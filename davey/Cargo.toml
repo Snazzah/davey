@@ -6,6 +6,7 @@ license = "MIT"
 homepage = "https://github.com/Snazzah/davey"
 repository = "https://github.com/Snazzah/davey"
 authors = ["Snazzah <me@snazzah.com>"]
+keywords = ["MLS", "Encryption", "E2EE", "Discord", "DAVE"]
 edition = "2024"
 
 [dependencies]
