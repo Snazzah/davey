@@ -1,4 +1,4 @@
-# Davey! [<small>How ya doin?</small>](https://www.youtube.com/watch?v=TBbxlP6NXXs)
+# Davey!
 
 [![NPM version](https://img.shields.io/npm/v/@snazzah/davey?maxAge=3600)](https://www.npmjs.com/package/@snazzah/davey) [![install size](https://packagephobia.com/badge?p=@snazzah/davey)](https://packagephobia.com/result?p=@snazzah/davey) [![NPM downloads](https://img.shields.io/npm/dt/@snazzah/davey?maxAge=3600)](https://www.npmjs.com/package/@snazzah/davey) [![discord chat](https://img.shields.io/discord/311027228177727508?logo=discord&logoColor=white&color=5865F2)](https://snaz.in/discord)
 
