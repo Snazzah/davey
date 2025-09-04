@@ -4,7 +4,8 @@ use openmls::{
   framing::errors::ProtocolMessageError,
   group::{
     CommitToPendingProposalsError, ExportSecretError, MergeCommitError, MergePendingCommitError,
-    NewGroupError, ProcessMessageError, RemoveProposalError, WelcomeError,
+    NewGroupError, ProcessMessageError, ProposeAddMemberError, ProposeRemoveMemberError,
+    RemoveProposalError, WelcomeError,
   },
   prelude::{CryptoError, InvalidExtensionError, KeyPackageNewError, tls_codec},
 };
@@ -113,8 +114,10 @@ pub enum ProcessProposalsError {
   CredentialContentConvertFailed(TryFromSliceError),
   #[error("unexpected user in add proposal: {0}")]
   UnexpectedUser(u64),
-  #[error("failed to store pending proposal: {0}")]
-  StorePendingProposalFailed(MemoryStorageError),
+  #[error("failed to store add proposal: {0}")]
+  StoreAddProposalFailed(ProposeAddMemberError<MemoryStorageError>),
+  #[error("failed to store remove proposal: {0}")]
+  StoreRemoveProposalFailed(ProposeRemoveMemberError<MemoryStorageError>),
   #[error("processed message was not a proposal")]
   MessageNotProposal,
   #[error("failed to deserialize proposal ref: {0}")]

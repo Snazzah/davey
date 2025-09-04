@@ -1,20 +1,18 @@
 #![deny(unsafe_code)]
 #![warn(missing_docs, rust_2018_idioms)]
 
-
 pub use aead::{self, AeadCore, AeadInPlace, Error, Key, KeyInit, KeySizeUser};
 pub use aes;
 
 use cipher::{
+  BlockCipher, BlockEncrypt, BlockSizeUser, InnerIvInit, StreamCipherCore,
   consts::{U0, U16},
   generic_array::{ArrayLength, GenericArray},
-  BlockCipher, BlockEncrypt, BlockSizeUser, InnerIvInit, StreamCipherCore,
 };
 use core::marker::PhantomData;
-use ghash::{universal_hash::UniversalHash, GHash};
+use ghash::{GHash, universal_hash::UniversalHash};
 
-
-use aes::{cipher::consts::U12, Aes128, Aes256};
+use aes::{Aes128, Aes256, cipher::consts::U12};
 
 /// Maximum length of associated data.
 pub const A_MAX: u64 = 1 << 36;
@@ -40,7 +38,7 @@ impl<T: private::SealedTagSize> TagSize for T {}
 
 mod private {
   use aead::generic_array::ArrayLength;
-  use cipher::{consts, Unsigned};
+  use cipher::{Unsigned, consts};
 
   // Sealed traits stop other crates from implementing any traits that use it.
   pub trait SealedTagSize: ArrayLength<u8> + Unsigned {}

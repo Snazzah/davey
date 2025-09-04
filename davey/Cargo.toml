@@ -1,17 +1,20 @@
 [package]
-edition = "2024"
 name = "davey"
-version = "0.0.1"
+version = "0.0.1-pre.1"
+description = "A Rust implementation of Discord Audio & Video End-to-End Encryption (DAVE) Protocol"
+license = "MIT"
+homepage = "https://github.com/Snazzah/davey"
+repository = "https://github.com/Snazzah/davey"
 authors = ["Snazzah <me@snazzah.com>"]
+edition = "2024"
 
 [dependencies]
-openmls = { git = "https://github.com/Snazzah/openmls.git", rev = "3f237fb29e0d61cedd43223a6d6df1fbc0a042ad", features = ["js"], version = "0.6.0" }
-openmls_basic_credential = { git = "https://github.com/Snazzah/openmls.git", rev = "3f237fb29e0d61cedd43223a6d6df1fbc0a042ad", version = "0.3.0" }
-openmls_rust_crypto = { git = "https://github.com/Snazzah/openmls.git", rev = "3f237fb29e0d61cedd43223a6d6df1fbc0a042ad", version = "0.3.0" }
+openmls = { features = ["js"], version = "0.7.0" }
+openmls_basic_credential = "0.4.0"
+openmls_rust_crypto = "0.4.0"
 tracing = "0.1.41"
 thiserror = "2.0.12"
 # Crypto utils
-# aes-gcm = { path = "./aes-gcm" }
 p256 = { version = "0.13" }
 rand = "0.8"
 sha2 = { version = "0.10" }
