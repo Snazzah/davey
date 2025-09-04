@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: impit-node
+        working-directory: davey-node
     outputs:
       version: ${{ steps.set-version.outputs.version }}
     steps:
