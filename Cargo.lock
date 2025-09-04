@@ -1084,7 +1084,8 @@ checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 [[package]]
 name = "openmls"
 version = "0.7.0"
-source = "git+https://github.com/Snazzah/openmls.git?rev=208c2df4ed2030054f5fa72a5c22b65251b389eb#208c2df4ed2030054f5fa72a5c22b65251b389eb"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d63c0968d4ec14a79259ad7287b03da934ffecd7cddacf9054224cafe8a9aa7"
 dependencies = [
  "fluvio-wasm-timer",
  "getrandom 0.2.16",
@@ -1099,7 +1100,8 @@ dependencies = [
 [[package]]
 name = "openmls_basic_credential"
 version = "0.4.0"
-source = "git+https://github.com/Snazzah/openmls.git?rev=208c2df4ed2030054f5fa72a5c22b65251b389eb#208c2df4ed2030054f5fa72a5c22b65251b389eb"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef01a72cab1d27a047d47ef3f084f049c2b25a081cd996d3a8904ed16fd523f8"
 dependencies = [
  "ed25519-dalek",
  "openmls_traits",
@@ -1112,7 +1114,8 @@ dependencies = [
 [[package]]
 name = "openmls_memory_storage"
 version = "0.4.0"
-source = "git+https://github.com/Snazzah/openmls.git?rev=208c2df4ed2030054f5fa72a5c22b65251b389eb#208c2df4ed2030054f5fa72a5c22b65251b389eb"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29ef51988f762610917d071606ec641c6e8007262589634f7b8e77b35ded7423"
 dependencies = [
  "log",
  "openmls_traits",
@@ -1124,7 +1127,8 @@ dependencies = [
 [[package]]
 name = "openmls_rust_crypto"
 version = "0.4.0"
-source = "git+https://github.com/Snazzah/openmls.git?rev=208c2df4ed2030054f5fa72a5c22b65251b389eb#208c2df4ed2030054f5fa72a5c22b65251b389eb"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a08aebf5bf9ed2ab567b253e6d1b93a5c11e0ce456fe2f8761d80b88a0a90ae0"
 dependencies = [
  "aes-gcm",
  "chacha20poly1305",
@@ -1148,7 +1152,8 @@ dependencies = [
 [[package]]
 name = "openmls_traits"
 version = "0.4.0"
-source = "git+https://github.com/Snazzah/openmls.git?rev=208c2df4ed2030054f5fa72a5c22b65251b389eb#208c2df4ed2030054f5fa72a5c22b65251b389eb"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0b50a33e77f6bb34610f7b10548518abe22858c194d3c994670931510530a74"
 dependencies = [
  "serde",
  "tls_codec",
