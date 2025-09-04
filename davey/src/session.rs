@@ -422,9 +422,9 @@ impl DaveSession {
               }
 
               commit_adds_members = true;
-              group
-                .propose_add_member(&self.provider, &self.signer, add_proposal.key_package())
-                .map_err(ProcessProposalsError::StoreAddProposalFailed)?;
+              // group
+              //   .propose_add_member(&self.provider, &self.signer, add_proposal.key_package())
+              //   .map_err(ProcessProposalsError::StoreAddProposalFailed)?;
             } else if let Proposal::Remove(remove_proposal) = proposal.proposal() {
               let leaf_index = remove_proposal.removed();
               let member = group.member(leaf_index);
@@ -443,10 +443,20 @@ impl DaveSession {
               debug!(
                 "Storing remove proposal for user {outgoing_user_id} (leaf index: {leaf_index})",
               );
-              group
-                .propose_remove_member(&self.provider, &self.signer, leaf_index)
-                .map_err(ProcessProposalsError::StoreRemoveProposalFailed)?;
+              // group
+              //   .propose_remove_member(&self.provider, &self.signer, leaf_index)
+              //   .map_err(ProcessProposalsError::StoreRemoveProposalFailed)?;
             }
+
+            // Here we clone the proposal and make it a reference. (we allow this with the OpenMLS fork)
+            // This forces the resulting commit to use references rather than full proposals on add.
+            // The voice gateway does not accept full proposals.
+            let mut proposal = *proposal;
+            proposal.proposal_or_ref_type = ProposalOrRefType::Reference;
+
+            group
+              .store_pending_proposal(self.provider.storage(), proposal)
+              .map_err(ProcessProposalsError::StorePendingProposalFailed)?;
           }
           _ => return Err(ProcessProposalsError::MessageNotProposal),
         }

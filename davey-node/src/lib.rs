@@ -46,8 +46,16 @@ pub type DAVEProtocolVersion = u16;
 #[cfg(debug_assertions)]
 #[napi(module_exports)]
 pub fn exports(mut _exports: Object) -> napi::Result<()> {
-  env_logger::Builder::new()
-    .filter_level(log::LevelFilter::Warn)
-    .init();
+  tracing_log::LogTracer::init().expect("Failed to set logger");
+
+  let subscriber = tracing_subscriber::FmtSubscriber::builder()
+    .with_max_level(tracing::Level::TRACE)
+    .with_target(true)
+    .with_level(true)
+    .finish();
+
+  tracing::subscriber::set_global_default(subscriber)
+    .expect("setting default subscriber failed");
+
   Ok(())
 }

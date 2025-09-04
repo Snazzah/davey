@@ -114,6 +114,8 @@ pub enum ProcessProposalsError {
   CredentialContentConvertFailed(TryFromSliceError),
   #[error("unexpected user in add proposal: {0}")]
   UnexpectedUser(u64),
+  #[error("failed to store pending proposal: {0}")]
+  StorePendingProposalFailed(MemoryStorageError),
   #[error("failed to store add proposal: {0}")]
   StoreAddProposalFailed(ProposeAddMemberError<MemoryStorageError>),
   #[error("failed to store remove proposal: {0}")]

@@ -7,11 +7,13 @@ version = "0.0.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-env_logger = "0.11.6"
 davey = { path = "../davey", features = ["napi"] }
 napi = { version = "3.2.4", features = ["napi6"] }
 napi-derive = "3.2.4"
 log = "0.4.27"
+tracing-subscriber = "0.3.20"
+tracing-log = "0.2.0"
+tracing = "0.1.41"
 
 [build-dependencies]
 napi-build = "2.0.1"

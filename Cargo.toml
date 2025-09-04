@@ -6,6 +6,11 @@ members = [
     "davey-node",
 ]
 
+[patch.crates-io]
+openmls = { git = "https://github.com/Snazzah/openmls.git", rev = "208c2df4ed2030054f5fa72a5c22b65251b389eb" }
+openmls_basic_credential = { git = "https://github.com/Snazzah/openmls.git", rev = "208c2df4ed2030054f5fa72a5c22b65251b389eb" }
+openmls_rust_crypto = { git = "https://github.com/Snazzah/openmls.git", rev = "208c2df4ed2030054f5fa72a5c22b65251b389eb" }
+
 [profile.release]
 strip = true  # Automatically strip symbols from the binary.
 opt-level = "z"  # Optimize for size.
