@@ -13,9 +13,9 @@ permissions:
       - 'davey-node/**'
       - 'davey/**'
       - '.github/workflows/node-ci.yml'
-    # branches:
-    #   - main
-    #   - master
+    branches:
+      - main
+      - master
     tags-ignore:
       - '**'
   pull_request:
