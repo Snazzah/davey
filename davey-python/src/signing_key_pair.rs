@@ -11,10 +11,7 @@ pub struct SigningKeyPair {
 impl SigningKeyPair {
   #[new]
   fn new(private: Vec<u8>, public: Vec<u8>) -> Self {
-    Self {
-      private,
-      public,
-    }
+    Self { private, public }
   }
 
   fn __repr__(&self) -> &'static str {
