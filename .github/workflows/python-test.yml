@@ -86,8 +86,7 @@ jobs:
           uv venv
           source .venv/bin/activate
           uv sync --no-install-package davey -v
-          uv python install pypy
-          maturin develop --release
+          uv pip install --no-index --find-links dist --force-reinstall davey -v --prerelease=allow
           python -m pytest
 
   musllinux:
@@ -187,8 +186,7 @@ jobs:
           uv venv
           source .venv/bin/activate
           uv sync --no-install-package davey -v
-          uv python install pypy
-          maturin develop --release
+          uv pip install --no-index --find-links dist --force-reinstall davey -v --prerelease=allow
           python -m pytest
 
   sdist:
