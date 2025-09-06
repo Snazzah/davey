@@ -44,6 +44,7 @@ jobs:
     secrets: inherit
 
   linux:
+    needs: code_checks
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
@@ -89,6 +90,7 @@ jobs:
           python -m pytest
 
   musllinux:
+    needs: code_checks
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
@@ -121,6 +123,7 @@ jobs:
           path: davey-python/dist
 
   windows:
+    needs: code_checks
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
@@ -150,6 +153,7 @@ jobs:
           path: davey-python/dist
 
   macos:
+    needs: code_checks
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
@@ -177,6 +181,7 @@ jobs:
           path: davey-python/dist
 
   sdist:
+    needs: code_checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -191,3 +196,12 @@ jobs:
         with:
           name: wheels-sdist
           path: davey-python/dist
+      - name: pytest
+        shell: bash
+        run: |
+          set -e
+          uv venv
+          source .venv/bin/activate
+          uv sync --no-install-package davey -v
+          uv pip install --no-index --find-links dist --force-reinstall davey -v
+          python -m pytest
