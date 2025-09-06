@@ -8,6 +8,8 @@ use openmls::{
 };
 use openmls_basic_credential::SignatureKeyPair;
 use openmls_rust_crypto::OpenMlsRustCrypto;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
 use std::{borrow::Cow, collections::HashMap, fmt::Debug, num::NonZeroU16};
 use tracing::{debug, trace, warn};
 
@@ -63,6 +65,7 @@ fn dave_protocol_version_to_capabilities(
 pub const DAVE_PROTOCOL_VERSION: u16 = 1;
 
 #[cfg_attr(feature = "napi", napi)]
+#[cfg_attr(feature = "pyo3", pyclass(eq, eq_int, rename_all = "snake_case"))]
 #[derive(Clone, Copy, Debug, FromPrimitive, PartialEq, Eq)]
 pub enum ProposalsOperationType {
   APPEND = 0,
@@ -70,6 +73,7 @@ pub enum ProposalsOperationType {
 }
 
 #[cfg_attr(feature = "napi", napi)]
+#[cfg_attr(feature = "pyo3", pyclass(eq, eq_int, rename_all = "snake_case"))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum SessionStatus {

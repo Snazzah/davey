@@ -1,0 +1,45 @@
+[build-system]
+requires = ["maturin>=1.9,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "davey"
+description = "A Discord Audio & Video End-to-End Encryption (DAVE) Protocol implementation"
+readme = "README.md"
+authors = [{ name = "Snazzah", email = "me@snazzah.com" }]
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Software Development :: Libraries",
+]
+dynamic = ["version"]
+keywords = [
+    "discord",
+    "e2ee",
+    "mls",
+    "rust",
+]
+
+[project.urls]
+"Issue tracker" = "https://github.com/Snazzah/davey/issues"
+"Repository" = "https://github.com/Snazzah/davey"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+addopts = "-ra -q"
+testpaths = [
+    "test",
+]

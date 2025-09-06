@@ -1,5 +1,7 @@
 #[cfg(feature = "napi")]
 use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
 use std::{collections::HashMap, time::Instant};
 
 use tracing::warn;
@@ -17,6 +19,7 @@ use super::{
 };
 
 #[cfg_attr(feature = "napi", napi(object))]
+#[cfg_attr(feature = "pyo3", pyclass(get_all))]
 #[derive(Clone)]
 pub struct EncryptionStats {
   /// Number of encryption successes

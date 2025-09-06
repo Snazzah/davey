@@ -4,6 +4,7 @@ resolver = "2"
 members = [
     "davey",
     "davey-node",
+    "davey-python",
 ]
 
 [profile.release]

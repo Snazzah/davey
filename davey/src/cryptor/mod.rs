@@ -1,5 +1,7 @@
 #[cfg(feature = "napi")]
 use napi_derive::napi;
+#[cfg(feature = "pyo3")]
+use pyo3::prelude::*;
 use std::time::Duration;
 
 pub const OPUS_SILENCE_PACKET: [u8; 3] = [0xF8, 0xFF, 0xFE];
@@ -31,6 +33,7 @@ pub const GENERATION_WRAP: u32 = 1 << (8 * RATCHET_GENERATION_BYTES);
 pub const MAX_FRAMES_PER_SECOND: u64 = 50 + 2 * 60; // 50 audio frames + 2 * 60fps video streams
 
 #[cfg_attr(feature = "napi", napi)]
+#[cfg_attr(feature = "pyo3", pyclass(eq, eq_int, rename_all = "snake_case"))]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum MediaType {
   AUDIO = 0,
@@ -38,6 +41,7 @@ pub enum MediaType {
 }
 
 #[cfg_attr(feature = "napi", napi)]
+#[cfg_attr(feature = "pyo3", pyclass(eq, eq_int, rename_all = "snake_case"))]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Codec {
   UNKNOWN = 0,
