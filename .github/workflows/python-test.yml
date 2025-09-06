@@ -84,8 +84,8 @@ jobs:
           set -e
           uv venv
           source .venv/bin/activate
-          uv sync --no-install-package impit -v
-          uv pip install --no-index --find-links dist --force-reinstall impit -v
+          uv sync --no-install-package davey -v
+          uv pip install --no-index --find-links dist --force-reinstall davey -v
           python -m pytest
 
   musllinux:
