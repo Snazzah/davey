@@ -169,10 +169,10 @@ impl DaveSession {
   ) -> PyResult<Option<CommitWelcome>> {
     let result = self
       .inner
-      .process_proposals(operation_type, &proposals, expected_user_ids.as_deref())
+      .process_proposals(operation_type, proposals, expected_user_ids.as_deref())
       .map_err(|err| py_value_error!("Failed to process proposals: {err:?}"))?;
 
-    Ok(result.map(|cw| CommitWelcome::from(cw)))
+    Ok(result.map(CommitWelcome::from))
   }
 
   fn process_welcome(&mut self, welcome: &[u8]) -> PyResult<()> {
@@ -218,7 +218,7 @@ impl DaveSession {
       .encrypt(media_type, codec, packet)
       .map_err(|err| py_value_error!("Failed to encrypt: {err:?}"))?;
 
-    Ok(result.to_owned().to_vec())
+    Ok(result.into_owned().to_vec())
   }
 
   fn encrypt_opus(&mut self, packet: &[u8]) -> PyResult<Vec<u8>> {

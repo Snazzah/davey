@@ -12,8 +12,8 @@ impl SigningKeyPair {
   #[new]
   fn new(private: Vec<u8>, public: Vec<u8>) -> Self {
     Self {
-      private: private,
-      public: public,
+      private,
+      public,
     }
   }
 
@@ -32,15 +32,6 @@ impl From<davey::SigningKeyPair> for SigningKeyPair {
     SigningKeyPair {
       private: skp.private,
       public: skp.public,
-    }
-  }
-}
-
-impl From<&SigningKeyPair> for davey::SigningKeyPair {
-  fn from(skp: &SigningKeyPair) -> Self {
-    davey::SigningKeyPair {
-      private: skp.private.clone(),
-      public: skp.public.clone(),
     }
   }
 }

@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 
 #[pyfunction]
 pub fn generate_key_fingerprint(version: u16, key: &[u8], user_id: u64) -> PyResult<Vec<u8>> {
-  davey::generate_key_fingerprint(version, &key, user_id)
+  davey::generate_key_fingerprint(version, key, user_id)
     .map_err(|e| py_value_error!("failed to generate key fingerprint: {:?}", e))
 }
 
