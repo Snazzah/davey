@@ -35,6 +35,12 @@ keywords = [
 "Issue tracker" = "https://github.com/Snazzah/davey/issues"
 "Repository" = "https://github.com/Snazzah/davey"
 
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff",
+]
+
 [tool.maturin]
 features = ["pyo3/extension-module"]
 
