@@ -179,6 +179,15 @@ jobs:
         with:
           name: wheels-macos-${{ matrix.platform.target }}
           path: davey-python/dist
+      - name: pytest
+        shell: bash
+        run: |
+          set -e
+          uv venv
+          source .venv/bin/activate
+          uv sync --no-install-package davey -v
+          maturin develop --release
+          python -m pytest
 
   sdist:
     needs: code_checks
@@ -196,12 +205,3 @@ jobs:
         with:
           name: wheels-sdist
           path: davey-python/dist
-      - name: pytest
-        shell: bash
-        run: |
-          set -e
-          uv venv
-          source .venv/bin/activate
-          uv sync --no-install-package davey -v
-          maturin develop --release
-          python -m pytest
