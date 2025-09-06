@@ -155,7 +155,6 @@ jobs:
           options: -v ${{ github.workspace }}:/io -w /io/davey-python
           run: |
             set -e
-            cd davey-python
             apk add py3-pip py3-virtualenv
             python3 -m virtualenv .venv
             source .venv/bin/activate
@@ -175,7 +174,6 @@ jobs:
             apk add py3-virtualenv
           run: |
             set -e
-            cd davey-python
             python3 -m virtualenv .venv
             source .venv/bin/activate
             pip install -U uv
