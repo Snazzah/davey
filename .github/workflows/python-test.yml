@@ -80,6 +80,7 @@ jobs:
           name: wheels-linux-${{ matrix.platform.target }}
           path: davey-python/dist
       - name: pytest
+        if: ${{ startsWith(matrix.platform.target, 'x86_64') }}
         shell: bash
         run: |
           set -e
@@ -88,6 +89,24 @@ jobs:
           uv sync --no-install-package davey -v
           uv pip install --no-index --find-links dist --force-reinstall davey -v --prerelease=allow
           python -m pytest
+      - name: pytest
+        if: ${{ !startsWith(matrix.platform.target, 'x86') && matrix.platform.target != 'ppc64' }}
+        uses: uraimo/run-on-arch-action@v3
+        with:
+          arch: ${{ matrix.platform.target }}
+          distro: ubuntu22.04
+          githubToken: ${{ github.token }}
+          install: |
+            apt-get update
+            apt-get install -y --no-install-recommends python3 python3-pip
+            pip3 install -U uv
+          run: |
+            set -e
+            uv venv
+            source .venv/bin/activate
+            uv sync --no-install-package davey -v
+            uv pip install --no-index --find-links dist --force-reinstall davey -v --prerelease=allow
+            python -m pytest
 
   musllinux:
     needs: code_checks
@@ -151,6 +170,15 @@ jobs:
         with:
           name: wheels-windows-${{ matrix.platform.target }}
           path: davey-python/dist
+      - name: pytest
+        if: ${{ !startsWith(matrix.platform.target, 'aarch64') }}
+        shell: bash
+        run: |
+          uv venv
+          source .venv/Scripts/activate
+          uv sync --no-install-package davey -v
+          uv pip install --no-index --find-links dist --force-reinstall davey -v --prerelease=allow
+          python -m pytest
 
   macos:
     needs: code_checks
@@ -165,8 +193,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
-      - name: Set up Python
-        run: uv python install
+      - uses: actions/setup-python@v6
+        with:
+          python-version: |
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -186,6 +220,7 @@ jobs:
           uv venv
           source .venv/bin/activate
           uv sync --no-install-package davey -v
+          uv python list
           uv pip install --no-index --find-links dist --force-reinstall davey -v --prerelease=allow
           python -m pytest
 
