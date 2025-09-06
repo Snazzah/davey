@@ -86,6 +86,7 @@ jobs:
           uv venv
           source .venv/bin/activate
           uv sync --no-install-package davey -v
+          uv python install pypy
           maturin develop --release
           python -m pytest
 
@@ -186,6 +187,7 @@ jobs:
           uv venv
           source .venv/bin/activate
           uv sync --no-install-package davey -v
+          uv python install pypy
           maturin develop --release
           python -m pytest
 
