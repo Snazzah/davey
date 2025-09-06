@@ -126,8 +126,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
-      - name: Set up Python
-        run: uv python install
+      - uses: actions/setup-python@v6
+        with:
+          python-version: |
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -141,6 +147,41 @@ jobs:
         with:
           name: wheels-musllinux-${{ matrix.platform.target }}
           path: davey-python/dist
+      - name: pytest
+        if: ${{ startsWith(matrix.platform.target, 'x86_64') }}
+        uses: addnab/docker-run-action@v3
+        with:
+          image: alpine:latest
+          options: -v ${{ github.workspace }}:/io -w /io/davey-python
+          run: |
+            set -e
+            cd davey-python
+            apk add py3-pip py3-virtualenv
+            python3 -m virtualenv .venv
+            source .venv/bin/activate
+            pip install -U uv
+            uv sync --no-install-package davey -v
+            uv pip install --no-index --find-links dist --force-reinstall davey -v --prerelease=allow
+            python -m pytest
+      - name: pytest
+        if: ${{ !startsWith(matrix.platform.target, 'x86') }}
+        uses: uraimo/run-on-arch-action@v3
+        with:
+          arch: ${{ matrix.platform.target }}
+          distro: alpine_latest
+          githubToken: ${{ github.token }}
+          dockerRunArgs: -v ${{ github.workspace }}:/io -w /io/davey-python
+          install: |
+            apk add py3-virtualenv
+          run: |
+            set -e
+            cd davey-python
+            python3 -m virtualenv .venv
+            source .venv/bin/activate
+            pip install -U uv
+            uv sync --no-install-package davey -v
+            uv pip install --no-index --find-links dist --force-reinstall davey -v --prerelease=allow
+            python -m pytest
 
   windows:
     needs: code_checks
