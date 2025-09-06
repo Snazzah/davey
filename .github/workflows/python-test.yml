@@ -102,6 +102,7 @@ jobs:
             pip3 install -U uv
           run: |
             set -e
+            cd davey-python
             uv venv
             source .venv/bin/activate
             uv sync --no-install-package davey -v
@@ -220,7 +221,6 @@ jobs:
           uv venv
           source .venv/bin/activate
           uv sync --no-install-package davey -v
-          uv python list
           uv pip install --no-index --find-links dist --force-reinstall davey -v --prerelease=allow
           python -m pytest
 
