@@ -330,7 +330,7 @@ impl OutboundFrameProcessor {
   pub fn reset(&mut self) {
     self.frame_codec = Codec::UNKNOWN;
     self.frame_index = 0;
-    self.unencrypted_ranges.clear();
+    self.unencrypted_bytes.clear();
     self.encrypted_bytes.clear();
     self.ciphertext_bytes.clear();
     self.unencrypted_ranges.clear();
@@ -339,19 +339,18 @@ impl OutboundFrameProcessor {
   pub fn process_frame(&mut self, frame: &[u8], codec: Codec) {
     self.reset();
 
-    // TODO we dont need to but maybe add more codecs later
     self.frame_codec = codec;
-    if self.frame_codec != Codec::OPUS {
-      // return Err(napi_invalid_arg_error!(
-      //   "Unsupported codec for frame encryption"
-      // ));
-      unimplemented!("non-opus codecs are currently unsupported")
-    }
-
     self.unencrypted_bytes.reserve(frame.len());
     self.encrypted_bytes.reserve(frame.len());
 
-    let success = process_frame_opus(self, frame);
+    let success = match codec {
+      Codec::OPUS => process_frame_opus(self, frame),
+      Codec::H264 => process_frame_h264(self, frame),
+      _ => {
+        // TODO we dont need to but maybe add more codecs later
+        unimplemented!("h264 and opus are the only supported codecs currently")
+      }
+    };
 
     if !success {
       self.frame_index = 0;
@@ -377,8 +376,7 @@ impl OutboundFrameProcessor {
     ))
   }
 
-  #[allow(dead_code)]
-  fn add_unencrypted_bytes(&mut self, data: &[u8]) {
+  pub fn add_unencrypted_bytes(&mut self, data: &[u8]) {
     if let Some(last_range) = self.unencrypted_ranges.last_mut() {
       if last_range.offset + last_range.size == self.frame_index {
         // extend the last range
