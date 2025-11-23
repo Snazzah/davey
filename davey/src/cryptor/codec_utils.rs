@@ -223,15 +223,11 @@ pub fn process_frame_h265(processor: &mut OutboundFrameProcessor, frame: &[u8]) 
     if (nal_type < NAL_TYPE_VCL_CUTOFF) {
       // found a VCL NAL, encrypt the payload only
       processor.add_unencrypted_bytes(data[nal_unit_start_index..][..NAL_UNIT_HEADER_SIZE]);
-      processor.add_encrypted_bytes(
-        data[(nal_unit_start_index + NAL_UNIT_HEADER_SIZE)..]
-          [..(next_nalu_start - nal_unit_start_index - NAL_UNIT_HEADER_SIZE)],
-      );
+      processor
+        .add_encrypted_bytes(data[(nal_unit_start_index + NAL_UNIT_HEADER_SIZE)..next_nalu_start]);
     } else {
       // copy the whole NAL unit
-      processor.add_encrypted_bytes(
-        data[nal_unit_start_index..][..(next_nalu_start - nal_unit_start_index)],
-      );
+      processor.add_encrypted_bytes(data[nal_unit_start_index..next_nalu_start]);
     }
 
     nalu_index_pair = next_nalu_index_pair
