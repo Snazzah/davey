@@ -182,6 +182,98 @@ pub fn process_frame_h264(processor: &mut OutboundFrameProcessor, frame: &[u8]) 
   true
 }
 
+pub fn process_frame_h265(processor: &mut OutboundFrameProcessor, frame: &[u8]) -> bool {
+  // minimize the amount of unencrypted header data for H265 depending on the NAL unit
+  // type from WebRTC, see: src/modules/rtp_rtcp/source/rtp_format_h265.cc
+  // src/common_video/h265/h265_common.cc
+  // src/modules/rtp_rtcp/source/video_rtp_depacketizer_h265.cc
+
+  const NAL_HEADER_TYPE_MASK: u8 = 0x7E;
+  const NAL_TYPE_VCL_CUTOFF: u8 = 23;
+  const NAL_UNIT_HEADER_SIZE: u8 = 2;
+
+  if (frame.len() < NALU_SHORT_START_SEQUENCE_SIZE + NAL_UNIT_HEADER_SIZE) {
+    warn!("H265 frame is too small to contain a NAL unit");
+    return false;
+  }
+
+  let mut nalu_index_pair = next_h26x_nalu_index(frame, 0);
+  loop {
+    let Some((nal_unit_start_index, _start_code_size)) = nalu_index_pair.take() else {
+      break;
+    };
+    if nal_unit_start_index >= frame.len() - 1 {
+      break;
+    }
+
+    let nal_type = (frame[nal_unit_start_index] & NAL_HEADER_TYPE_MASK) >> 1;
+
+    // copy the start code and then the NAL unit
+
+    // Because WebRTC will convert them all start codes to 4-byte on the receiver side
+    // always write a long start code and then the NAL unit
+    processor.add_unencrypted_bytes(NALU_LONG_START_CODE);
+
+    let next_nalu_index_pair = next_h26x_nalu_index(frame, nal_unit_start_index);
+    let next_nalu_start = match next_nalu_index_pair {
+      Some(next_nalu_index_pair) => next_nalu_index_pair.0 - next_nalu_index_pair.1,
+      None => frame.len(),
+    };
+
+    if (nal_type < NAL_TYPE_VCL_CUTOFF) {
+      // found a VCL NAL, encrypt the payload only
+      processor.add_unencrypted_bytes(data[nal_unit_start_index..][..NAL_UNIT_HEADER_SIZE]);
+      processor.add_encrypted_bytes(
+        data[(nal_unit_start_index + NAL_UNIT_HEADER_SIZE)..]
+          [..(next_nalu_start - nal_unit_start_index - NAL_UNIT_HEADER_SIZE)],
+      );
+    } else {
+      // copy the whole NAL unit
+      processor.add_encrypted_bytes(
+        data[nal_unit_start_index..][..(next_nalu_start - nal_unit_start_index)],
+      );
+    }
+
+    nalu_index_pair = next_nalu_index_pair
+  }
+
+  true
+}
+
+pub fn process_frame_vp8(processor: &mut OutboundFrameProcessor, frame: &[u8]) -> bool {
+  const KEY_FRAME_UNENCRYPTED_BYTES: u8 = 10;
+  const DELTA_FRAME_UNENCRYPTED_BYTES: u8 = 1;
+
+  // parse the VP8 payload header to determine if it's a key frame
+  // https://datatracker.ietf.org/doc/html/rfc7741#section-4.3
+
+  // 0 1 2 3 4 5 6 7
+  // +-+-+-+-+-+-+-+-+
+  // |Size0|H| VER |P|
+  // +-+-+-+-+-+-+-+-+
+  // P is an inverse key frame flag
+
+  // if this is a key frame the depacketizer will read 10 bytes into the payload header
+  // if this is a delta frame the depacketizer only needs the first byte of the payload
+  // header (since that's where the key frame flag is)
+
+  let unencrypted_header_bytes: u8 = if (frame[0] & 0x01 == 0) {
+    KEY_FRAME_UNENCRYPTED_BYTES
+  } else {
+    DELTA_FRAME_UNENCRYPTED_BYTES
+  };
+
+  processor.add_unencrypted_bytes(frame[..unencrypted_header_bytes]);
+  processor.add_encrypted_bytes(frame[unencrypted_header_bytes..]);
+
+  true
+}
+
+pub fn process_frame_vp9(processor: &mut OutboundFrameProcessor, frame: &[u8]) -> bool {
+  processor.add_encrypted_bytes(frame);
+  true
+}
+
 pub fn validate_encrypted_frame(processor: &OutboundFrameProcessor, frame: &[u8]) -> bool {
   let codec = &processor.frame_codec;
   if *codec != Codec::H264 && *codec != Codec::H265 {
