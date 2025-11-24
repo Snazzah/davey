@@ -189,7 +189,7 @@ pub fn process_frame_h265(processor: &mut OutboundFrameProcessor, frame: &[u8]) 
   // src/modules/rtp_rtcp/source/video_rtp_depacketizer_h265.cc
 
   const NAL_HEADER_TYPE_MASK: u8 = 0x7E;
-  const NAL_TYPE_VCL_CUTOFF: u8 = 23;
+  const NAL_TYPE_VCL_CUTOFF: u8 = 32;
   const NAL_UNIT_HEADER_SIZE: u8 = 2;
 
   if (frame.len() < NALU_SHORT_START_SEQUENCE_SIZE + NAL_UNIT_HEADER_SIZE) {
