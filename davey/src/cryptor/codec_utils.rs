@@ -190,9 +190,9 @@ pub fn process_frame_h265(processor: &mut OutboundFrameProcessor, frame: &[u8]) 
 
   const NAL_HEADER_TYPE_MASK: u8 = 0x7E;
   const NAL_TYPE_VCL_CUTOFF: u8 = 32;
-  const NAL_UNIT_HEADER_SIZE: u8 = 2;
+  const NAL_UNIT_HEADER_SIZE: usize = 2;
 
-  if (frame.len() < NALU_SHORT_START_SEQUENCE_SIZE + NAL_UNIT_HEADER_SIZE) {
+  if frame.len() < NALU_SHORT_START_SEQUENCE_SIZE + NAL_UNIT_HEADER_SIZE {
     warn!("H265 frame is too small to contain a NAL unit");
     return false;
   }
@@ -220,14 +220,14 @@ pub fn process_frame_h265(processor: &mut OutboundFrameProcessor, frame: &[u8]) 
       None => frame.len(),
     };
 
-    if (nal_type < NAL_TYPE_VCL_CUTOFF) {
+    if nal_type < NAL_TYPE_VCL_CUTOFF {
       // found a VCL NAL, encrypt the payload only
-      processor.add_unencrypted_bytes(data[nal_unit_start_index..][..NAL_UNIT_HEADER_SIZE]);
+      processor.add_unencrypted_bytes(&frame[nal_unit_start_index..][..NAL_UNIT_HEADER_SIZE]);
       processor
-        .add_encrypted_bytes(data[(nal_unit_start_index + NAL_UNIT_HEADER_SIZE)..next_nalu_start]);
+        .add_encrypted_bytes(&frame[(nal_unit_start_index + NAL_UNIT_HEADER_SIZE)..next_nalu_start]);
     } else {
       // copy the whole NAL unit
-      processor.add_encrypted_bytes(data[nal_unit_start_index..next_nalu_start]);
+      processor.add_encrypted_bytes(&frame[nal_unit_start_index..next_nalu_start]);
     }
 
     nalu_index_pair = next_nalu_index_pair
@@ -237,8 +237,8 @@ pub fn process_frame_h265(processor: &mut OutboundFrameProcessor, frame: &[u8]) 
 }
 
 pub fn process_frame_vp8(processor: &mut OutboundFrameProcessor, frame: &[u8]) -> bool {
-  const KEY_FRAME_UNENCRYPTED_BYTES: u8 = 10;
-  const DELTA_FRAME_UNENCRYPTED_BYTES: u8 = 1;
+  const KEY_FRAME_UNENCRYPTED_BYTES: usize = 10;
+  const DELTA_FRAME_UNENCRYPTED_BYTES: usize = 1;
 
   // parse the VP8 payload header to determine if it's a key frame
   // https://datatracker.ietf.org/doc/html/rfc7741#section-4.3
@@ -253,14 +253,14 @@ pub fn process_frame_vp8(processor: &mut OutboundFrameProcessor, frame: &[u8]) -
   // if this is a delta frame the depacketizer only needs the first byte of the payload
   // header (since that's where the key frame flag is)
 
-  let unencrypted_header_bytes: u8 = if (frame[0] & 0x01 == 0) {
+  let unencrypted_header_bytes: usize = if frame[0] & 0x01 == 0 {
     KEY_FRAME_UNENCRYPTED_BYTES
   } else {
     DELTA_FRAME_UNENCRYPTED_BYTES
   };
 
-  processor.add_unencrypted_bytes(frame[..unencrypted_header_bytes]);
-  processor.add_encrypted_bytes(frame[unencrypted_header_bytes..]);
+  processor.add_unencrypted_bytes(&frame[..unencrypted_header_bytes]);
+  processor.add_encrypted_bytes(&frame[unencrypted_header_bytes..]);
 
   true
 }
