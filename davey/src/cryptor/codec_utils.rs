@@ -267,6 +267,8 @@ pub fn process_frame_vp8(processor: &mut OutboundFrameProcessor, frame: &[u8]) -
 }
 
 pub fn process_frame_vp9(processor: &mut OutboundFrameProcessor, frame: &[u8]) -> bool {
+  // payload descriptor is unencrypted in each packet
+  // and includes all information the depacketizer needs
   processor.add_encrypted_bytes(frame);
   true
 }
