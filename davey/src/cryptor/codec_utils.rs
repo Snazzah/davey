@@ -1,6 +1,12 @@
+use core::matches;
+
 use tracing::warn;
 
-use super::{Codec, frame_processors::OutboundFrameProcessor};
+use super::{
+  Codec,
+  frame_processors::OutboundFrameProcessor,
+  leb128::{leb128_size, read_leb128, write_leb128},
+};
 
 const NALU_SHORT_START_SEQUENCE_SIZE: usize = 3;
 
@@ -270,6 +276,92 @@ pub fn process_frame_vp9(processor: &mut OutboundFrameProcessor, frame: &[u8]) -
   // payload descriptor is unencrypted in each packet
   // and includes all information the depacketizer needs
   processor.add_encrypted_bytes(frame);
+  true
+}
+
+pub fn process_frame_av1(processor: &mut OutboundFrameProcessor, frame: &[u8]) -> bool {
+  const OBU_HEADER_HAS_EXTENSION_MASK: u8 = 0b0_0000_100;
+  const OBU_HEADER_HAS_SIZE_MASK: u8 = 0b0_0000_010;
+  const OBU_HEADER_TYPE_MASK: u8 = 0b0_1111_000;
+  const OBU_TYPE_TEMPORAL_DELIMITER: u8 = 2;
+  const OBU_TYPE_TILE_LIST: u8 = 8;
+  const OBU_TYPE_PADDING: u8 = 15;
+  const OBU_EXTENSION_SIZE_BYTES: usize = 1;
+
+  let mut i = 0;
+  while i < frame.len() {
+    let obu_header_index = i;
+    let mut obu_header = frame[i];
+    i += size_of_val(&obu_header);
+
+    let obu_has_extension: bool = (obu_header & OBU_HEADER_HAS_EXTENSION_MASK) != 0;
+    let obu_has_size: bool = (obu_header & OBU_HEADER_HAS_SIZE_MASK) != 0;
+    let obu_type: u8 = (obu_header & OBU_HEADER_TYPE_MASK) >> 3;
+
+    if obu_has_extension {
+      i += OBU_EXTENSION_SIZE_BYTES;
+    }
+
+    if i >= frame.len() {
+      warn!("Malformed AV1 frame: header overflows frame");
+      return false;
+    }
+
+    let obu_payload_size: usize;
+    if obu_has_size {
+      let Some((obu_payload_size_explicit, leb128_size)) = read_leb128(&frame[i..]) else {
+        warn!("Malformed AV1 frame: invalid LEB128 size");
+        return false;
+      };
+      obu_payload_size = obu_payload_size_explicit as usize;
+      i += leb128_size;
+    } else {
+      obu_payload_size = frame.len() - i;
+    }
+
+    let obu_payload_index = i;
+
+    if i + obu_payload_size > frame.len() {
+      warn!("Malformed AV1 frame: payload overflows frame");
+      return false;
+    }
+
+    i += obu_payload_size;
+
+    // We only copy the OBUs that will not get dropped by the packetizer
+    if matches!(
+      obu_type,
+      OBU_TYPE_TEMPORAL_DELIMITER | OBU_TYPE_TILE_LIST | OBU_TYPE_PADDING
+    ) {
+      continue;
+    }
+
+    // if this is the last OBU, we may need to flip the "has size" bit
+    // which allows us to append necessary protocol data to the frame
+    let rewritten_without_size = i == frame.len() && obu_has_size;
+    if rewritten_without_size {
+      obu_header &= !OBU_HEADER_HAS_SIZE_MASK;
+    }
+
+    processor.add_unencrypted_bytes(&[obu_header]);
+    if obu_has_extension {
+      processor.add_unencrypted_bytes(
+        &frame[(obu_header_index + size_of_val(&obu_header))..][..OBU_EXTENSION_SIZE_BYTES],
+      );
+    }
+
+    // write the OBU payload size unencrypted if it was present and we didn't rewrite
+    // without it
+    if obu_has_size && !rewritten_without_size {
+      let mut leb128_buffer = vec![0u8; leb128_size(obu_payload_size as u64)];
+      write_leb128(obu_payload_size as u64, leb128_buffer.as_mut_slice());
+      processor.add_unencrypted_bytes(&leb128_buffer);
+    }
+
+    // add the OBU payload, encrypted
+    processor.add_encrypted_bytes(&frame[obu_payload_index..][..obu_payload_size]);
+  }
+
   true
 }
 
