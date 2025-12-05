@@ -279,6 +279,7 @@ pub fn process_frame_vp9(processor: &mut OutboundFrameProcessor, frame: &[u8]) -
   true
 }
 
+#[allow(clippy::unusual_byte_groupings, reason="following upstream libdave byte groupings")]
 pub fn process_frame_av1(processor: &mut OutboundFrameProcessor, frame: &[u8]) -> bool {
   const OBU_HEADER_HAS_EXTENSION_MASK: u8 = 0b0_0000_100;
   const OBU_HEADER_HAS_SIZE_MASK: u8 = 0b0_0000_010;
