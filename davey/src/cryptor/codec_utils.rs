@@ -294,6 +294,7 @@ pub fn process_frame_av1(processor: &mut OutboundFrameProcessor, frame: &[u8]) -
 
   let mut i = 0;
   while i < frame.len() {
+    // Read the OBU header.
     let obu_header_index = i;
     let mut obu_header = frame[i];
     i += size_of_val(&obu_header);
@@ -303,6 +304,7 @@ pub fn process_frame_av1(processor: &mut OutboundFrameProcessor, frame: &[u8]) -
     let obu_type: u8 = (obu_header & OBU_HEADER_TYPE_MASK) >> 3;
 
     if obu_has_extension {
+      // Skip extension byte
       i += OBU_EXTENSION_SIZE_BYTES;
     }
 
@@ -320,6 +322,7 @@ pub fn process_frame_av1(processor: &mut OutboundFrameProcessor, frame: &[u8]) -
       obu_payload_size = obu_payload_size_explicit as usize;
       i += leb128_size;
     } else {
+      // If the size is not present, the OBU extends to the end of the frame.
       obu_payload_size = frame.len() - i;
     }
 
@@ -347,8 +350,10 @@ pub fn process_frame_av1(processor: &mut OutboundFrameProcessor, frame: &[u8]) -
       obu_header &= !OBU_HEADER_HAS_SIZE_MASK;
     }
 
+    // write the OBU header unencrypted
     processor.add_unencrypted_bytes(&[obu_header]);
     if obu_has_extension {
+      // write the extension byte unencrypted
       processor.add_unencrypted_bytes(
         &frame[(obu_header_index + size_of_val(&obu_header))..][..OBU_EXTENSION_SIZE_BYTES],
       );
