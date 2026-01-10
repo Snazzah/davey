@@ -108,7 +108,7 @@ pub enum ProcessProposalsError {
   #[error("message was not a private or public message: {0}")]
   MessageNotPrivateOrPublic(#[from] ProtocolMessageError),
   #[error("failed to process message: {0}")]
-  MessageProcessingFailed(#[from] ProcessMessageError),
+  MessageProcessingFailed(#[from] ProcessMessageError<MemoryStorageError>),
   #[error("failed to convert credential content to user id: {0}")]
   CredentialContentConvertFailed(TryFromSliceError),
   #[error("unexpected user in add proposal: {0}")]
@@ -166,7 +166,7 @@ pub enum ProcessCommitError {
   #[error("failed to merge staged commit: {0}")]
   MergingStagedCommitFailed(#[from] MergeCommitError<MemoryStorageError>),
   #[error("failed to merge staged commit: {0}")]
-  ProcessingMessageFailed(#[from] ProcessMessageError),
+  ProcessingMessageFailed(#[from] ProcessMessageError<MemoryStorageError>),
   #[error("processed message was not a staged commit")]
   ProcessedMessageNotStagedCommit,
   #[error("failed to update ratchets: {0}")]
