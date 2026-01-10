@@ -11,8 +11,8 @@ edition = "2024"
 
 [dependencies]
 openmls = { features = ["js"], version = "=0.7.1" }
-openmls_basic_credential = "0.4.0"
-openmls_rust_crypto = "0.4.0"
+openmls_basic_credential = "=0.4.1"
+openmls_rust_crypto = "=0.4.1"
 tracing = "0.1.41"
 thiserror = "2.0.12"
 # Crypto utils
