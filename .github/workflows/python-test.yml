@@ -12,6 +12,7 @@ on:
       - 'davey/**'
       - '.github/workflows/python-test.yml'
       - '.github/workflows/python-code-checks.yml'
+      - 'Cargo.lock'
     branches:
       - main
       - master
@@ -23,6 +24,7 @@ on:
       - 'davey/**'
       - '.github/workflows/python-test.yml'
       - '.github/workflows/python-code-checks.yml'
+      - 'Cargo.lock'
   workflow_dispatch:
   workflow_call:
 
