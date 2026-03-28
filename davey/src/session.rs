@@ -351,7 +351,7 @@ impl DaveSession {
     let mls_group_create_config = MlsGroupCreateConfig::builder()
       .with_group_context_extensions(Extensions::single(Extension::ExternalSenders(vec![
         external_sender.clone(),
-      ])))?
+      ]))?)
       .ciphersuite(self.ciphersuite)
       .capabilities(dave_protocol_version_to_capabilities(self.protocol_version).unwrap())
       .use_ratchet_tree_extension(true)
@@ -555,7 +555,9 @@ impl DaveSession {
     let welcome = Welcome::tls_deserialize_exact_bytes(welcome)?;
 
     let staged_join =
-      StagedWelcome::new_from_welcome(&self.provider, &mls_group_config, welcome, None)?;
+      StagedWelcome::build_from_welcome(&self.provider, &mls_group_config, welcome)?
+        .replace_old_group()
+        .build()?;
 
     let external_senders = staged_join.group_context().extensions().external_senders();
     let Some(external_senders) = external_senders else {
