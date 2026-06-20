@@ -19,16 +19,16 @@ pub struct Range {
 
 pub type Ranges = Vec<Range>;
 
-pub fn unencrypted_ranges_size(unencrypted_ranges: &Ranges) -> u8 {
+pub fn unencrypted_ranges_size(unencrypted_ranges: &Ranges) -> usize {
   let mut size: usize = 0;
   for range in unencrypted_ranges {
     size += leb128_size(range.offset as u64);
     size += leb128_size(range.size as u64);
   }
-  size as u8
+  size
 }
 
-pub fn serialize_unencrypted_ranges(unencrypted_ranges: &Ranges, buffer: &mut [u8]) -> u8 {
+pub fn serialize_unencrypted_ranges(unencrypted_ranges: &Ranges, buffer: &mut [u8]) -> usize {
   let mut write_at = 0;
   for range in unencrypted_ranges {
     let range_size = leb128_size(range.offset as u64) + leb128_size(range.size as u64);
@@ -39,7 +39,7 @@ pub fn serialize_unencrypted_ranges(unencrypted_ranges: &Ranges, buffer: &mut [u
     write_at += write_leb128(range.offset as u64, &mut buffer[write_at..]);
     write_at += write_leb128(range.size as u64, &mut buffer[write_at..]);
   }
-  write_at as u8
+  write_at
 }
 
 pub fn deserialize_unencrypted_ranges(
@@ -132,7 +132,7 @@ pub fn do_reconstruct(
     frame_index += size;
   }
 
-  if frame_index < other_bytes.len() {
+  if other_bytes_index < other_bytes.len() {
     // copy_other_bytes(other_bytes.size() - other_bytes_index)
     let size = other_bytes.len() - other_bytes_index;
     output[frame_index..frame_index + size]

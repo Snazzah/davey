@@ -234,7 +234,7 @@ pub fn process_frame_h265(processor: &mut OutboundFrameProcessor, frame: &[u8]) 
       );
     } else {
       // copy the whole NAL unit
-      processor.add_encrypted_bytes(&frame[nal_unit_start_index..next_nalu_start]);
+      processor.add_unencrypted_bytes(&frame[nal_unit_start_index..next_nalu_start]);
     }
 
     nalu_index_pair = next_nalu_index_pair;

@@ -812,8 +812,7 @@ impl DaveSession {
     }
 
     let mut out_size: usize = 0;
-    let mut encrypted_buffer =
-      vec![0u8; Encryptor::get_max_ciphertext_byte_size(&media_type, packet.len())];
+    let mut encrypted_buffer = vec![0u8; Encryptor::get_max_ciphertext_byte_size(codec, packet)];
 
     let success = self.encryptor.encrypt(
       &media_type,

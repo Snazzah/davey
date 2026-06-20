@@ -3,7 +3,7 @@ use napi_derive::napi;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 use std::{
-  cmp::max,
+  cmp::min,
   collections::{HashMap, VecDeque},
   sync::Arc,
   time::{Duration, Instant},
@@ -210,7 +210,7 @@ impl Decryptor {
       self.allow_passthrough_until = Some(
         self
           .allow_passthrough_until
-          .map(|prev_expiry| max(prev_expiry, new_expiry))
+          .map(|prev_expiry| min(prev_expiry, new_expiry))
           .unwrap_or(new_expiry),
       );
     }

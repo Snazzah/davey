@@ -171,6 +171,15 @@ impl Encryptor {
       stats.attempts += 1;
       stats.max_attempts = stats.max_attempts.max(attempt as u32);
 
+      let size = leb128_size(truncated_nonce as u64);
+      let encrypted_frame_bytes =
+        frame_size + AES_GCM_127_TRUNCATED_TAG_BYTES + size + ranges_size + 1 + MARKER_BYTES.len();
+      if encrypted_frame_bytes > encrypted_frame.len() {
+        warn!("encryption failed, encrypted frame buffer is too small");
+        success = false;
+        break;
+      }
+
       if let Ok(tag) = encrypt_result {
         encrypted_frame[frame_size..frame_size + AES_GCM_127_TRUNCATED_TAG_BYTES]
           .copy_from_slice(&tag);
@@ -186,11 +195,9 @@ impl Encryptor {
         break;
       };
 
-      let size = leb128_size(truncated_nonce as u64);
-
       let (truncated_nonce_buffer, rest) =
         encrypted_frame[frame_size + AES_GCM_127_TRUNCATED_TAG_BYTES..].split_at_mut(size);
-      let (unencrypted_ranges_buffer, rest) = rest.split_at_mut(ranges_size as usize);
+      let (unencrypted_ranges_buffer, rest) = rest.split_at_mut(ranges_size);
       let (supplemental_bytes_buffer, rest) = rest.split_at_mut(1);
       let (marker_bytes_buffer, _) = rest.split_at_mut(MARKER_BYTES.len());
 
@@ -207,7 +214,7 @@ impl Encryptor {
         break;
       }
 
-      let supplemental_bytes_large = SUPPLEMENTAL_BYTES + size + ranges_size as usize;
+      let supplemental_bytes_large = SUPPLEMENTAL_BYTES + size + ranges_size;
       if supplemental_bytes_large > u8::MAX as usize {
         warn!("encryption failed, supplemental_bytes_large check failed");
         success = false;
@@ -222,9 +229,14 @@ impl Encryptor {
       let encrypted_frame_bytes = reconstructed_frame_size
         + AES_GCM_127_TRUNCATED_TAG_BYTES
         + size
-        + ranges_size as usize
+        + ranges_size
         + 1
         + MARKER_BYTES.len();
+      if encrypted_frame_bytes > encrypted_frame.len() {
+        warn!("encryption failed, reconstructed encrypted frame exceeds buffer");
+        success = false;
+        break;
+      }
 
       if validate_encrypted_frame(&frame_processor, &encrypted_frame[..encrypted_frame_bytes]) {
         *bytes_written = encrypted_frame_bytes;
@@ -250,8 +262,20 @@ impl Encryptor {
     success
   }
 
-  pub fn get_max_ciphertext_byte_size(_media_type: &MediaType, frame_size: usize) -> usize {
-    frame_size + SUPPLEMENTAL_BYTES + TRANSFORM_PADDING_BYTES
+  pub fn get_max_ciphertext_byte_size(codec: Codec, frame: &[u8]) -> usize {
+    let mut frame_processor = OutboundFrameProcessor::new();
+    frame_processor.process_frame(frame, codec);
+    let frame_size =
+      frame_processor.encrypted_bytes.len() + frame_processor.unencrypted_bytes.len();
+    let ranges_size = unencrypted_ranges_size(&frame_processor.unencrypted_ranges);
+
+    frame_size
+      + AES_GCM_127_TRUNCATED_TAG_BYTES
+      + leb128_size(u32::MAX as u64)
+      + ranges_size
+      + 1
+      + MARKER_BYTES.len()
+      + TRANSFORM_PADDING_BYTES
   }
 
   fn get_next_cryptor_and_nonce(&mut self) -> (Option<&AeadCipher>, u32) {
