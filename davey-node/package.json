@@ -47,6 +47,7 @@
       "aarch64-unknown-linux-musl",
       "aarch64-pc-windows-msvc",
       "armv7-linux-androideabi",
+      "riscv64gc-unknown-linux-gnu",
       "wasm32-wasi-preview1-threads"
     ]
   },
