@@ -81,6 +81,11 @@ jobs:
             arch: ppc64le
             manylinux: auto
             distro: ubuntu22.04
+          - runner: ubuntu-24.04-riscv
+            target: riscv64gc-unknown-linux-gnu
+            arch: riscv64
+            manylinux: 2_39
+            distro: ubuntu24.04
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 #v10.1.0
@@ -118,8 +123,21 @@ jobs:
           githubToken: ${{ github.token }}
           install: |
             apt-get update
-            apt-get install -y --no-install-recommends python3 python3-pip
-            pip3 install -U uv
+            if [ "${{ matrix.platform.arch }}" = "riscv64" ]; then
+              apt-get install -y --no-install-recommends python3 python3-venv ca-certificates curl
+              UV_VERSION=0.12.15
+              UV_ARCHIVE=uv-riscv64gc-unknown-linux-gnu.tar.gz
+              cd /tmp
+              curl -LsSfO "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/${UV_ARCHIVE}"
+              curl -LsSfO "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/${UV_ARCHIVE}.sha256"
+              sha256sum -c "${UV_ARCHIVE}.sha256"
+              tar -xzf "${UV_ARCHIVE}"
+              install -m 755 uv-riscv64gc-unknown-linux-gnu/uv /usr/local/bin/uv
+              install -m 755 uv-riscv64gc-unknown-linux-gnu/uvx /usr/local/bin/uvx
+            else
+              apt-get install -y --no-install-recommends python3 python3-pip
+              pip3 install -U uv
+            fi
           run: |
             set -e
             cd davey-python
