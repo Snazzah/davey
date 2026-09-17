@@ -65,7 +65,7 @@ jobs:
             target: ppc64le
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 #v10.1.0
       - name: Set up Python
         run: uv python install
       - name: Build wheels
@@ -127,7 +127,7 @@ jobs:
             target: armv7
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 #v10.1.0
       - uses: actions/setup-python@v6
         with:
           python-version: |
@@ -195,7 +195,7 @@ jobs:
             target: x86
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 #v10.1.0
       - uses: actions/setup-python@v6
         with:
           python-version: 3.x
@@ -234,7 +234,7 @@ jobs:
             target: aarch64
     steps:
       - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 #v10.1.0
       - uses: actions/setup-python@v6
         with:
           python-version: |
