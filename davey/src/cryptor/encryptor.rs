@@ -1,7 +1,5 @@
 #[cfg(feature = "napi")]
 use napi_derive::napi;
-#[cfg(feature = "pyo3")]
-use pyo3::prelude::*;
 use std::{collections::HashMap, time::Instant};
 
 use tracing::warn;

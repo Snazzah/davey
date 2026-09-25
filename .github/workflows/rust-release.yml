@@ -11,7 +11,7 @@ jobs:
     name: Test crate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Run tests for davey crate
@@ -27,7 +27,7 @@ jobs:
       run:
         working-directory: davey
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Read crate version
         id: get_version
         shell: bash
@@ -46,7 +46,7 @@ jobs:
       run:
         working-directory: davey
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Authenticate with crates.io via Trusted Publishing
@@ -64,7 +64,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Generate a changelog
@@ -78,7 +78,7 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: "rs-${{ needs.get_version.outputs.version }}"
           name: "davey@${{ needs.get_version.outputs.version }}"
