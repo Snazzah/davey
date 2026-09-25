@@ -20,12 +20,12 @@ jobs:
       run:
         working-directory: davey-python
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Use Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: 3.x
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v10
       - name: Get current version
         id: get_version
         run: |
@@ -48,9 +48,9 @@ jobs:
       # Used to generate artifact attestation
       attestations: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
       - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: 'wheels-*/*'
       - name: Publish to PyPI
@@ -66,7 +66,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Generate a changelog
@@ -80,7 +80,7 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: "py-${{ needs.get_version.outputs.version }}"
           name: "davey-python@${{ needs.get_version.outputs.version }}"

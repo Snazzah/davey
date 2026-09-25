@@ -51,21 +51,21 @@ jobs:
     strategy:
       matrix:
         platform:
-          - runner: ubuntu-22.04
+          - runner: ubuntu-24.04
             target: x86_64
-          - runner: ubuntu-22.04
+          - runner: ubuntu-24.04
             target: x86
-          - runner: ubuntu-22.04
+          - runner: ubuntu-24.04
             target: aarch64
-          - runner: ubuntu-22.04
+          - runner: ubuntu-24.04
             target: armv7
-          - runner: ubuntu-22.04
+          - runner: ubuntu-24.04
             target: s390x
-          - runner: ubuntu-22.04
+          - runner: ubuntu-24.04
             target: ppc64le
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
       - name: Set up Python
         run: uv python install
       - name: Build wheels
@@ -77,7 +77,7 @@ jobs:
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
           manylinux: auto
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-linux-${{ matrix.platform.target }}
           path: davey-python/dist
@@ -117,18 +117,18 @@ jobs:
     strategy:
       matrix:
         platform:
-          - runner: ubuntu-22.04
+          - runner: ubuntu-24.04
             target: x86_64
-          - runner: ubuntu-22.04
+          - runner: ubuntu-24.04
             target: x86
-          - runner: ubuntu-22.04
+          - runner: ubuntu-24.04
             target: aarch64
-          - runner: ubuntu-22.04
+          - runner: ubuntu-24.04
             target: armv7
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - uses: actions/setup-python@v7
         with:
           python-version: |
             3.9
@@ -145,7 +145,7 @@ jobs:
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
           manylinux: musllinux_1_2
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-musllinux-${{ matrix.platform.target }}
           path: davey-python/dist
@@ -194,9 +194,9 @@ jobs:
           - runner: windows-latest
             target: x86
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - uses: actions/setup-python@v7
         with:
           python-version: 3.x
           architecture: ${{ matrix.platform.target }}
@@ -208,7 +208,7 @@ jobs:
           args: --release --out dist --find-interpreter
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-windows-${{ matrix.platform.target }}
           path: davey-python/dist
@@ -233,9 +233,9 @@ jobs:
           - runner: macos-14
             target: aarch64
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - uses: actions/setup-python@v7
         with:
           python-version: |
             3.9
@@ -251,7 +251,7 @@ jobs:
           args: --release --out dist --find-interpreter
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-macos-${{ matrix.platform.target }}
           path: davey-python/dist
@@ -269,7 +269,7 @@ jobs:
     needs: code_checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Build sdist
         uses: PyO3/maturin-action@v1
         with:
@@ -277,7 +277,7 @@ jobs:
           command: sdist
           args: --out dist
       - name: Upload sdist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-sdist
           path: davey-python/dist
