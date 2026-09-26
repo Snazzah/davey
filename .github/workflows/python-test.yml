@@ -52,17 +52,40 @@ jobs:
       matrix:
         platform:
           - runner: ubuntu-24.04
-            target: x86_64
+            target: x86_64-unknown-linux-gnu
+            arch: x86_64
+            manylinux: auto
+            distro: ubuntu24.04
           - runner: ubuntu-24.04
-            target: x86
+            target: i686-unknown-linux-gnu
+            arch: x86
+            manylinux: auto
+            distro: ubuntu24.04
           - runner: ubuntu-24.04
-            target: aarch64
+            target: aarch64-unknown-linux-gnu
+            arch: aarch64
+            manylinux: auto
+            distro: ubuntu24.04
           - runner: ubuntu-24.04
-            target: armv7
+            target: armv7-unknown-linux-gnueabihf
+            arch: armv7
+            manylinux: auto
+            distro: ubuntu24.04
           - runner: ubuntu-24.04
-            target: s390x
+            target: s390x-unknown-linux-gnu
+            arch: s390x
+            manylinux: auto
+            distro: ubuntu24.04
           - runner: ubuntu-24.04
-            target: ppc64le
+            target: powerpc64le-unknown-linux-gnu
+            arch: ppc64le
+            manylinux: auto
+            distro: ubuntu24.04
+          - runner: ubuntu-24.04-riscv
+            target: riscv64gc-unknown-linux-gnu
+            arch: riscv64
+            manylinux: 2_39
+            distro: ubuntu24.04
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.2.0
@@ -75,14 +98,14 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
-          manylinux: auto
+          manylinux: ${{ matrix.platform.manylinux }}
       - name: Upload wheels
         uses: actions/upload-artifact@v7
         with:
-          name: wheels-linux-${{ matrix.platform.target }}
+          name: wheels-linux-${{ matrix.platform.arch }}
           path: davey-python/dist
       - name: pytest
-        if: ${{ startsWith(matrix.platform.target, 'x86_64') }}
+        if: ${{ startsWith(matrix.platform.arch, 'x86_64') }}
         shell: bash
         run: |
           set -e
@@ -92,16 +115,29 @@ jobs:
           uv pip install --no-index --find-links dist --force-reinstall davey -v --prerelease=allow
           python -m pytest
       - name: pytest
-        if: ${{ !startsWith(matrix.platform.target, 'x86') && matrix.platform.target != 'ppc64' }}
+        if: ${{ !startsWith(matrix.platform.arch, 'x86') && matrix.platform.arch != 'ppc64' }}
         uses: uraimo/run-on-arch-action@v3
         with:
-          arch: ${{ matrix.platform.target }}
-          distro: ubuntu22.04
+          arch: ${{ matrix.platform.arch }}
+          distro: ${{ matrix.platform.distro }}
           githubToken: ${{ github.token }}
           install: |
             apt-get update
-            apt-get install -y --no-install-recommends python3 python3-pip
-            pip3 install -U uv
+            if [ "${{ matrix.platform.arch }}" = "riscv64" ]; then
+              apt-get install -y --no-install-recommends python3 python3-venv ca-certificates curl
+              UV_VERSION=0.12.15
+              UV_ARCHIVE=uv-riscv64gc-unknown-linux-gnu.tar.gz
+              cd /tmp
+              curl -LsSfO "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/${UV_ARCHIVE}"
+              curl -LsSfO "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/${UV_ARCHIVE}.sha256"
+              sha256sum -c "${UV_ARCHIVE}.sha256"
+              tar -xzf "${UV_ARCHIVE}"
+              install -m 755 uv-riscv64gc-unknown-linux-gnu/uv /usr/local/bin/uv
+              install -m 755 uv-riscv64gc-unknown-linux-gnu/uvx /usr/local/bin/uvx
+            else
+              apt-get install -y --no-install-recommends python3 python3-pip
+              pip3 install --break-system-packages -U uv
+            fi
           run: |
             set -e
             cd davey-python
@@ -118,13 +154,17 @@ jobs:
       matrix:
         platform:
           - runner: ubuntu-24.04
-            target: x86_64
+            target: x86_64-unknown-linux-musl
+            arch: x86_64
           - runner: ubuntu-24.04
-            target: x86
+            target: i686-unknown-linux-musl
+            arch: x86
           - runner: ubuntu-24.04
-            target: aarch64
+            target: aarch64-unknown-linux-musl
+            arch: aarch64
           - runner: ubuntu-24.04
-            target: armv7
+            target: armv7-unknown-linux-musleabihf
+            arch: armv7
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.2.0
@@ -147,10 +187,10 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v7
         with:
-          name: wheels-musllinux-${{ matrix.platform.target }}
+          name: wheels-musllinux-${{ matrix.platform.arch }}
           path: davey-python/dist
       - name: pytest
-        if: ${{ startsWith(matrix.platform.target, 'x86_64') }}
+        if: ${{ startsWith(matrix.platform.arch, 'x86_64') }}
         uses: addnab/docker-run-action@v3
         with:
           image: alpine:latest
@@ -165,10 +205,10 @@ jobs:
             uv pip install --no-index --find-links dist --force-reinstall davey -v --prerelease=allow
             python -m pytest
       - name: pytest
-        if: ${{ !startsWith(matrix.platform.target, 'x86') }}
+        if: ${{ !startsWith(matrix.platform.arch, 'x86') }}
         uses: uraimo/run-on-arch-action@v3
         with:
-          arch: ${{ matrix.platform.target }}
+          arch: ${{ matrix.platform.arch }}
           distro: alpine_latest
           githubToken: ${{ github.token }}
           dockerRunArgs: -v ${{ github.workspace }}:/io -w /io/davey-python
