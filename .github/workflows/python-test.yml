@@ -176,6 +176,8 @@ jobs:
             3.11
             3.12
             3.13
+            3.14
+            3.15
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -283,6 +285,8 @@ jobs:
             3.11
             3.12
             3.13
+            3.14
+            3.15
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:

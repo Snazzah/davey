@@ -16,7 +16,7 @@ pub use fingerprint::*;
 pub use session::*;
 pub use signing_key_pair::*;
 
-#[pymodule(name = "davey")]
+#[pymodule(name = "davey", gil_used = true)]
 fn davey_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
   let version = env!("CARGO_PKG_VERSION").replace("-pre.", "rc");
   m.add("__version__", version)?;

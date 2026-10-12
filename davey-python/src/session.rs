@@ -3,7 +3,7 @@ use std::num::NonZeroU16;
 
 use crate::signing_key_pair::SigningKeyPair;
 
-#[pyclass(get_all)]
+#[pyclass(get_all, from_py_object)]
 #[derive(Clone)]
 pub struct CommitWelcome {
   pub commit: Vec<u8>,

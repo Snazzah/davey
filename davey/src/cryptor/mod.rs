@@ -34,7 +34,10 @@ pub const MAX_FRAMES_PER_SECOND: u64 = 50 + 2 * 60; // 50 audio frames + 2 * 60f
 
 /// The type of media being referenced.
 #[cfg_attr(feature = "napi", napi)]
-#[cfg_attr(feature = "pyo3", pyclass(eq, eq_int, rename_all = "snake_case"))]
+#[cfg_attr(
+  feature = "pyo3",
+  pyclass(eq, eq_int, rename_all = "snake_case", from_py_object)
+)]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum MediaType {
   AUDIO = 0,
@@ -43,7 +46,10 @@ pub enum MediaType {
 
 /// The type of codec being used.
 #[cfg_attr(feature = "napi", napi)]
-#[cfg_attr(feature = "pyo3", pyclass(eq, eq_int, rename_all = "snake_case"))]
+#[cfg_attr(
+  feature = "pyo3",
+  pyclass(eq, eq_int, rename_all = "snake_case", from_py_object)
+)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Codec {
   UNKNOWN = 0,

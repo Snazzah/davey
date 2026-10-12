@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-#[pyclass(get_all)]
+#[pyclass(get_all, from_py_object)]
 #[derive(Clone)]
 pub struct SigningKeyPair {
   pub private: Vec<u8>,
