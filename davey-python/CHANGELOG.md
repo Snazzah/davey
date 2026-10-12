@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 0.1.7 - 2026-10-11
+
+Updated PyO3 so that Python version 3.15 successfully builds
+
 ## 0.1.6 - 2026-06-20
 
 Fixed libdave parity, improved reliability in encryption and video processing ([#17](https://github.com/Snazzah/davey/issues/17))
