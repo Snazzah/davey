@@ -17,3 +17,7 @@ pub use displayable_code::*;
 pub use fingerprint::*;
 pub use session::*;
 pub use signing_key_pair::SigningKeyPair;
+
+#[cfg(test)]
+#[path = "../tests/unit/mod.rs"]
+mod unit;

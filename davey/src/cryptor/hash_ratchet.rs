@@ -86,27 +86,3 @@ impl HashRatchet {
     self.cache.remove(&generation);
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn expected_result() {
-    let mut ratchet = HashRatchet::new(vec![
-      206, 221, 97, 177, 184, 161, 202, 105, 4, 101, 84, 40, 44, 247, 11, 123,
-    ]);
-
-    let (key, nonce) = ratchet.get(0).expect("Expected success from ratchet");
-    assert_eq!(
-      *key,
-      vec![
-        117, 48, 249, 169, 148, 94, 45, 46, 6, 208, 101, 31, 123, 42, 134, 75
-      ]
-    );
-    assert_eq!(
-      *nonce,
-      vec![48, 30, 95, 75, 116, 9, 15, 152, 94, 114, 107, 178]
-    );
-  }
-}

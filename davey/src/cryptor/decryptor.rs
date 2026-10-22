@@ -42,6 +42,10 @@ pub struct Decryptor {
 
 impl Decryptor {
   pub fn new() -> Self {
+    Self::with_clock(Arc::new(Clock::new()))
+  }
+
+  pub(crate) fn with_clock(clock: Arc<Clock>) -> Self {
     let mut stats = HashMap::new();
     stats.insert(
       MediaType::AUDIO,
@@ -65,7 +69,7 @@ impl Decryptor {
     );
 
     Self {
-      clock: Arc::new(Clock::new()),
+      clock,
       cryptor_managers: VecDeque::new(),
       frame_processors: Vec::new(),
       allow_passthrough_until: Some(Duration::new(0, 0)),
