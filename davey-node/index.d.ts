@@ -133,10 +133,11 @@ export declare class DAVESession {
   /**
    * Process a welcome message.
    * @param welcome The welcome message to process.
+   * @param recognizedUserIds The recognized set of user IDs gathered from the voice gateway. Recommended to set so that the users in the welcomed group are checked against.
    * @throws Will throw an error if the welcome is invalid. Send an [opcode 31: dave_mls_invalid_commit_welcome](https://daveprotocol.com/#dave_mls_invalid_commit_welcome-31) if this occurs.
    * @see https://daveprotocol.com/#dave_mls_welcome-30
    */
-  processWelcome(welcome: Buffer): void
+  processWelcome(welcome: Buffer, recognizedUserIds?: Array<string> | undefined | null): void
   /**
    * Process a commit.
    * @param commit The commit to process.

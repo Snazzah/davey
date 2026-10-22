@@ -143,6 +143,12 @@ pub enum ProcessWelcomeError {
   ExpectedOneExternalSender,
   #[error("expected same external sender in welcome as currently set")]
   UnexpectedExternalSender,
+  #[error("welcome is for a different group than the session's channel")]
+  UnexpectedGroupId,
+  #[error("failed to convert credential content to user id: {0}")]
+  CredentialContentConvertFailed(TryFromSliceError),
+  #[error("unrecognized user in welcome roster: {0}")]
+  UnrecognizedUser(u64),
   #[error("failed to delete pending group: {0}")]
   DeletingPendingGroupFailed(MemoryStorageError),
   #[error("failed to update ratchets: {0}")]

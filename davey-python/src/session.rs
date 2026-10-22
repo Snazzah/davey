@@ -175,10 +175,15 @@ impl DaveSession {
     Ok(result.map(CommitWelcome::from))
   }
 
-  fn process_welcome(&mut self, welcome: &[u8]) -> PyResult<()> {
+  #[pyo3(signature = (welcome, recognized_user_ids=None))]
+  fn process_welcome(
+    &mut self,
+    welcome: &[u8],
+    recognized_user_ids: Option<Vec<u64>>,
+  ) -> PyResult<()> {
     self
       .inner
-      .process_welcome(welcome)
+      .process_welcome(welcome, recognized_user_ids.as_deref())
       .map_err(|err| py_value_error!("Failed to process welcome: {err:?}"))?;
 
     Ok(())

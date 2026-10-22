@@ -248,13 +248,30 @@ impl DaveSession {
 
   /// Process a welcome message.
   /// @param welcome The welcome message to process.
+  /// @param recognizedUserIds The recognized set of user IDs gathered from the voice gateway. Recommended to set so that the users in the welcomed group are checked against.
   /// @throws Will throw an error if the welcome is invalid. Send an [opcode 31: dave_mls_invalid_commit_welcome](https://daveprotocol.com/#dave_mls_invalid_commit_welcome-31) if this occurs.
   /// @see https://daveprotocol.com/#dave_mls_welcome-30
   #[napi]
-  pub fn process_welcome(&mut self, welcome: Buffer) -> napi::Result<()> {
+  pub fn process_welcome(
+    &mut self,
+    welcome: Buffer,
+    recognized_user_ids: Option<Vec<String>>,
+  ) -> napi::Result<()> {
+    let uids_vec = if let Some(ids) = recognized_user_ids {
+      let mut parsed = Vec::with_capacity(ids.len());
+      for s in ids {
+        let id = s
+          .parse::<u64>()
+          .map_err(|_| napi_invalid_arg_error!("Invalid recognized user id"))?;
+        parsed.push(id);
+      }
+      Some(parsed)
+    } else {
+      None
+    };
     self
       .inner
-      .process_welcome(&welcome)
+      .process_welcome(&welcome, uids_vec.as_deref())
       .map_err(|err| napi_error!("Failed to process welcome: {err:?}"))?;
 
     Ok(())

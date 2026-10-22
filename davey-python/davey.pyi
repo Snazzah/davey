@@ -244,12 +244,17 @@ class DaveSession:
             If provided, this will reject unexpected user IDs.
         """
         ...
-    def process_welcome(self, welcome: bytes) -> None:
+    def process_welcome(
+        self,
+        welcome: bytes,
+        recognized_user_ids: Optional[List[int]] = None,
+    ) -> None:
         """
         Process a welcome message.
         See the [DAVE Protocol Whitepaper on opcode 30](https://daveprotocol.com/#dave_mls_welcome-30) for technical details.
 
         :param welcome: The welcome message to process.
+        :param recognized_user_ids: The recognized user IDs expected to be in the welcomed group.
         """
         ...
     def process_commit(self, commit: bytes) -> None:

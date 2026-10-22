@@ -545,8 +545,13 @@ impl DaveSession {
   }
 
   /// Process a welcome message from [dave_mls_welcome (30)](https://daveprotocol.com/#dave_mls_welcome-30).
+  /// If the user wants to validate that all users in the welcomed group are expected to be in the group, pass them in `recognized_user_ids`.
   /// Send a [dave_mls_invalid_commit_welcome (31)](https://daveprotocol.com/#dave_mls_invalid_commit_welcome-31) if the welcome couldn't be processed.
-  pub fn process_welcome(&mut self, welcome: &[u8]) -> Result<(), ProcessWelcomeError> {
+  pub fn process_welcome(
+    &mut self,
+    welcome: &[u8],
+    recognized_user_ids: Option<&[u64]>,
+  ) -> Result<(), ProcessWelcomeError> {
     if self.group.is_some() && self.status == SessionStatus::ACTIVE {
       return Err(ProcessWelcomeError::AlreadyInGroup);
     }
@@ -554,9 +559,6 @@ impl DaveSession {
     let Some(external_sender) = &self.external_sender else {
       return Err(ProcessWelcomeError::NoExternalSender);
     };
-
-    // TODO we are skipping using recognized user IDs in here for now
-    // See https://github.com/discord/libdave/blob/6e5ffbc1cb4eef6be96e8115c4626be598b7e501/cpp/src/dave/mls/session.cpp#L519
 
     debug!("Processing welcome");
 
@@ -572,6 +574,11 @@ impl DaveSession {
         .replace_old_group()
         .build()?;
 
+    // See https://github.com/discord/libdave/blob/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169/cpp/src/mls/session.cpp#L540
+    if staged_join.group_context().group_id() != &self.group_id {
+      return Err(ProcessWelcomeError::UnexpectedGroupId);
+    }
+
     let external_senders = staged_join.group_context().extensions().external_senders();
     let Some(external_senders) = external_senders else {
       return Err(ProcessWelcomeError::ExpectedExternalSenderExtension);
@@ -583,6 +590,22 @@ impl DaveSession {
 
     if join_external_sender != external_sender {
       return Err(ProcessWelcomeError::UnexpectedExternalSender);
+    }
+
+    if let Some(ids) = recognized_user_ids {
+      for member in staged_join.members() {
+        let user_id = u64::from_be_bytes(
+          member
+            .credential
+            .serialized_content()
+            .try_into()
+            .map_err(ProcessWelcomeError::CredentialContentConvertFailed)?,
+        );
+
+        if !ids.contains(&user_id) {
+          return Err(ProcessWelcomeError::UnrecognizedUser(user_id));
+        }
+      }
     }
 
     let group = staged_join.into_group(&self.provider)?;
