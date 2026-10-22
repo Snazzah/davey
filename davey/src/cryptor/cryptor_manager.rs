@@ -245,6 +245,10 @@ impl CipherManager {
     );
   }
 
+  pub fn domain_identity(&self) -> &[u8] {
+    self.key_ratchet.domain_identity()
+  }
+
   pub fn is_expired(&self) -> bool {
     if self.ratchet_expiry.is_none() {
       return false;

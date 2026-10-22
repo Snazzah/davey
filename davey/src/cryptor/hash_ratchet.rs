@@ -10,6 +10,7 @@ pub struct HashRatchet {
   next_secret: Vec<u8>,
   next_generation: u32,
   cache: HashMap<u32, (Vec<u8>, Vec<u8>)>,
+  domain_identity: Vec<u8>,
 }
 
 impl HashRatchet {
@@ -17,9 +18,15 @@ impl HashRatchet {
     trace!("Creating hash ratchet with secret: {:x?}", secret);
     Self {
       next_generation: 0,
+      domain_identity: secret.clone(),
       next_secret: secret,
       cache: HashMap::new(),
     }
+  }
+
+  /// The base secret is derived per (epoch, user), so it identifies the key domain
+  pub fn domain_identity(&self) -> &[u8] {
+    &self.domain_identity
   }
 
   // https://www.rfc-editor.org/rfc/rfc9420.html#section-9.1-11.1

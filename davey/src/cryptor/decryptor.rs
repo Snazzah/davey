@@ -7,7 +7,7 @@ use std::{
   time::{Duration, Instant},
 };
 
-use tracing::{trace, warn};
+use tracing::{debug, trace, warn};
 
 use crate::errors::DecryptorDecryptError;
 
@@ -194,6 +194,23 @@ impl Decryptor {
 
   pub fn transition_to_key_ratchet(&mut self, ratchet: HashRatchet) {
     trace!("Transitioning to new key ratchet");
+
+    // Remove expired cryptor managers first so a re-install of an expired key
+    // domain is treated as a fresh install
+    self.cleanup_expired_cryptor_managers();
+
+    // Ignore a ratchet for a key domain that already has a live cryptor manager:
+    // a sibling manager would give already-processed frames a fresh replay window.
+    // A duplicate is not a real transition, so it must not extend expiries either.
+    if self
+      .cryptor_managers
+      .iter()
+      .any(|cryptor_manager| cryptor_manager.domain_identity() == ratchet.domain_identity())
+    {
+      debug!("Ignoring key ratchet for already installed key domain");
+      return;
+    }
+
     self.update_cryptor_manager_expiry(RATCHET_EXPIRY);
     self
       .cryptor_managers
