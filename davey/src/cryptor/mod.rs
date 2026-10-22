@@ -62,6 +62,7 @@ pub enum Codec {
 }
 
 pub(crate) mod aead_cipher;
+pub(crate) mod clock;
 pub(crate) mod codec_utils;
 pub(crate) mod cryptor_manager;
 pub(crate) mod decryptor;

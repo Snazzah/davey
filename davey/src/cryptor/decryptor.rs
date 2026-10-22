@@ -12,7 +12,7 @@ use tracing::{trace, warn};
 use crate::errors::DecryptorDecryptError;
 
 use super::{
-  cryptor_manager::CipherManager, frame_processors::InboundFrameProcessor,
+  clock::Clock, cryptor_manager::CipherManager, frame_processors::InboundFrameProcessor,
   hash_ratchet::HashRatchet, *,
 };
 
@@ -33,7 +33,7 @@ pub struct DecryptionStats {
 }
 
 pub struct Decryptor {
-  clock: Arc<Instant>,
+  clock: Arc<Clock>,
   cryptor_managers: VecDeque<CipherManager>,
   frame_processors: Vec<InboundFrameProcessor>,
   allow_passthrough_until: Option<Duration>, // None == TimePoint::max()
@@ -65,7 +65,7 @@ impl Decryptor {
     );
 
     Self {
-      clock: Arc::new(Instant::now()),
+      clock: Arc::new(Clock::new()),
       cryptor_managers: VecDeque::new(),
       frame_processors: Vec::new(),
       allow_passthrough_until: Some(Duration::new(0, 0)),

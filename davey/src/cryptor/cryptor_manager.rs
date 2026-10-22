@@ -3,7 +3,7 @@ use std::{
   cmp::max,
   collections::{HashMap, VecDeque},
   sync::Arc,
-  time::{Duration, Instant},
+  time::Duration,
 };
 use tracing::{debug, trace, warn};
 
@@ -11,7 +11,7 @@ use crate::errors::ExpiringCipherError;
 
 use super::{CIPHER_EXPIRY, MAX_MISSING_NONCES};
 
-use super::{aead_cipher::AeadCipher, hash_ratchet::HashRatchet, *};
+use super::{aead_cipher::AeadCipher, clock::Clock, hash_ratchet::HashRatchet, *};
 
 pub fn compute_wrapped_generation(oldest: u32, generation: u32) -> u32 {
   // Assume generation is greater than or equal to oldest, this may be wrong in a few cases but
@@ -38,7 +38,7 @@ struct ExpiringCipher {
 }
 
 pub struct CipherManager {
-  clock: Arc<Instant>,
+  clock: Arc<Clock>,
   key_ratchet: HashRatchet,
   cryptor_generations: HashMap<u32, ExpiringCipher>,
   ratchet_creation: Duration,
@@ -50,7 +50,7 @@ pub struct CipherManager {
 }
 
 impl CipherManager {
-  pub fn new(clock: Arc<Instant>, key_ratchet: HashRatchet) -> Self {
+  pub fn new(clock: Arc<Clock>, key_ratchet: HashRatchet) -> Self {
     let ratchet_creation: Duration = clock.as_ref().elapsed();
     Self {
       clock,
