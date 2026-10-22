@@ -65,14 +65,20 @@ impl CipherManager {
     }
   }
 
-  pub fn can_process_nonce(&self, generation: u32, nonce: u32) -> bool {
-    if self.newest_processed_nonce.is_none() {
-      return true;
-    }
+  fn expected_nonce(&self) -> u64 {
+    self
+      .newest_processed_nonce
+      .map_or(0, |newest_processed_nonce| newest_processed_nonce + 1)
+  }
 
+  pub fn can_process_nonce(&self, generation: u32, nonce: u32) -> bool {
     let wrapped_big_nonce = compute_wrapped_big_nonce(generation, nonce);
-    wrapped_big_nonce > self.newest_processed_nonce.unwrap()
-      || self.missing_nonces.contains(&wrapped_big_nonce)
+    wrapped_big_nonce >= self.expected_nonce()
+      || self
+        .missing_nonces
+        .iter()
+        .rev()
+        .any(|&x| x == wrapped_big_nonce)
   }
 
   pub fn get_cipher(&mut self, generation: u32) -> Option<&mut AeadCipher> {
@@ -127,12 +133,11 @@ impl CipherManager {
   }
 
   pub fn report_cipher_success(&mut self, generation: u32, nonce: u32) {
+    let expected_nonce = self.expected_nonce();
     let wrapped_big_nonce = compute_wrapped_big_nonce(generation, nonce);
 
     // Add any missing nonces to the queue
-    if self.newest_processed_nonce.is_none() {
-      self.newest_processed_nonce = Some(wrapped_big_nonce);
-    } else if wrapped_big_nonce > self.newest_processed_nonce.unwrap() {
+    if wrapped_big_nonce >= expected_nonce {
       let oldest_missing_nonce = wrapped_big_nonce.saturating_sub(MAX_MISSING_NONCES);
 
       while !self.missing_nonces.is_empty()
@@ -142,10 +147,7 @@ impl CipherManager {
       }
 
       // If we're missing a lot, we don't want to add everything since newestProcessedNonce_
-      let missing_range_start = max(
-        oldest_missing_nonce,
-        self.newest_processed_nonce.unwrap() + 1,
-      );
+      let missing_range_start = max(oldest_missing_nonce, expected_nonce);
       for i in missing_range_start..wrapped_big_nonce {
         self.missing_nonces.push_back(i);
       }
@@ -155,7 +157,8 @@ impl CipherManager {
     } else if let Some(index) = self
       .missing_nonces
       .iter()
-      .position(|&x| x == wrapped_big_nonce)
+      // Reverse search since the nonce is most likely to be at the back of the queue
+      .rposition(|&x| x == wrapped_big_nonce)
     {
       self.missing_nonces.remove(index);
     }
