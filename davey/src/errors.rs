@@ -169,6 +169,12 @@ pub enum ProcessCommitError {
   ProcessingMessageFailed(#[from] ProcessMessageError<MemoryStorageError>),
   #[error("processed message was not a staged commit")]
   ProcessedMessageNotStagedCommit,
+  #[error("received own commit but there is no pending commit")]
+  NoPendingCommit,
+  #[error("received own commit that does not match the pending commit")]
+  OwnCommitMismatch,
+  #[error("commit did not advance the epoch")]
+  EpochDidNotAdvance,
   #[error("failed to update ratchets: {0}")]
   UpdatingRatchetsFailed(#[from] UpdateRatchetsError),
 }

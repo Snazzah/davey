@@ -108,6 +108,7 @@ pub struct DaveSession {
 
   external_sender: Option<ExternalSender>,
   group: Option<MlsGroup>,
+  pending_commit_bytes: Option<Vec<u8>>,
   status: SessionStatus,
   is_ready: bool,
 
@@ -136,6 +137,7 @@ impl DaveSession {
       credential_with_key,
       external_sender: None,
       group: None,
+      pending_commit_bytes: None,
       status: SessionStatus::INACTIVE,
       is_ready: false,
       privacy_code: String::new(),
@@ -213,6 +215,7 @@ impl DaveSession {
     // Clear storage
     self.provider.storage().values.write().unwrap().clear();
 
+    self.pending_commit_bytes = None;
     self.status = SessionStatus::INACTIVE;
 
     Ok(())
@@ -302,6 +305,7 @@ impl DaveSession {
     if let Some(mut group) = self.group.take() {
       group.delete(self.provider.storage())?;
     }
+    self.pending_commit_bytes = None;
 
     let external_sender = ExternalSender::tls_deserialize_exact_bytes(external_sender_data)?;
 
@@ -487,6 +491,7 @@ impl DaveSession {
       group
         .clear_pending_commit(self.provider.storage())
         .map_err(ProcessProposalsError::RemovingPendingCommitFailed)?;
+      self.pending_commit_bytes = None;
       if self.status == SessionStatus::AWAITING_RESPONSE {
         self.status = {
           if self.is_ready {
@@ -505,6 +510,7 @@ impl DaveSession {
       group
         .clear_pending_commit(self.provider.storage())
         .map_err(ProcessProposalsError::RemovingPendingCommitFailed)?;
+      self.pending_commit_bytes = None;
     }
 
     let (commit, welcome, _group_info) = group
@@ -516,6 +522,7 @@ impl DaveSession {
     let commit = commit
       .tls_serialize_detached()
       .expect("failed to serialize commit");
+    self.pending_commit_bytes = Some(commit.clone());
 
     let welcome = if commit_adds_members {
       let Some(mls_message_out) = welcome else {
@@ -592,6 +599,7 @@ impl DaveSession {
       group.epoch().as_u64()
     );
     self.group = Some(group);
+    self.pending_commit_bytes = None;
     self.status = SessionStatus::ACTIVE;
     self.update_ratchets()?;
 
@@ -622,6 +630,8 @@ impl DaveSession {
       return Err(ProcessCommitError::MessageForDifferentGroup);
     }
 
+    let epoch_before = group.epoch().as_u64();
+
     match group.process_message(&self.provider, protocol_message) {
       Ok(message) => match message.into_content() {
         ProcessedMessageContent::StagedCommitMessage(staged_commit) => {
@@ -630,11 +640,23 @@ impl DaveSession {
         _ => return Err(ProcessCommitError::ProcessedMessageNotStagedCommit),
       },
       Err(ProcessMessageError::InvalidCommit(StageCommitError::OwnCommit)) => {
-        // This is our own commit, lets merge pending instead
-        debug!("Found own commit, merging pending commit instead.");
-        group.merge_pending_commit(&self.provider)?;
+        // This is our own commit, so merge our pending commit instead.
+        match &self.pending_commit_bytes {
+          Some(expected) if expected.as_slice() == commit => {
+            debug!("Found own commit, merging pending commit instead.");
+            group.merge_pending_commit(&self.provider)?;
+          }
+          Some(_) => return Err(ProcessCommitError::OwnCommitMismatch),
+          None => return Err(ProcessCommitError::NoPendingCommit),
+        }
       }
       Err(error) => return Err(ProcessCommitError::ProcessingMessageFailed(error)),
+    }
+    self.pending_commit_bytes = None;
+
+    // Never re-key without moving to the next epoch
+    if group.epoch().as_u64() != epoch_before + 1 {
+      return Err(ProcessCommitError::EpochDidNotAdvance);
     }
 
     debug!(
