@@ -12,3 +12,14 @@ strip = true  # Automatically strip symbols from the binary.
 opt-level = "z"  # Optimize for size.
 lto = true
 codegen-units = 1
+
+# Pairwise fingerprints use scrypt, which is very slow without optimizations
+[profile.dev.package.scrypt]
+opt-level = 3
+
+[profile.dev.package.salsa20]
+opt-level = 3
+
+# tls_codec has a debug assertion that panics on truncated input instead of returning an error
+[profile.dev.package.tls_codec]
+debug-assertions = false

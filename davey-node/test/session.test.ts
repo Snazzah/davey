@@ -1,6 +1,6 @@
-import test, { SkipFn, TestFn } from 'ava';
+import test from 'ava';
 
-import { DAVESession, MediaType, ProposalsOperationType, SessionStatus, DEBUG_BUILD } from '../index';
+import { DAVESession, MediaType, ProposalsOperationType, SessionStatus } from '../index';
 
 // These buffers are from a session in the channel 927310423890473011, as the user 158049329150427136 (Snazzah)
 // where the proposal is adding the user 158533742254751744
@@ -81,9 +81,6 @@ const createSession = (status: SessionStatus = SessionStatus.INACTIVE) => {
   return session;
 };
 
-/** Only run this test on release builds, since tls-codec will panic on bad data in debug builds. */
-const testOnRelease: TestFn | SkipFn = DEBUG_BUILD ? test.skip : test;
-
 // new DAVESession()
 {
   test('new DAVESession() creates session successfully', (t) => {
@@ -110,7 +107,7 @@ const testOnRelease: TestFn | SkipFn = DEBUG_BUILD ? test.skip : test;
     t.is(session.status, SessionStatus.PENDING);
   });
 
-  testOnRelease('setExternalSender() throws on invalid data', (t) => {
+  test('setExternalSender() throws on invalid data', (t) => {
     const invalidExternalSender = Buffer.from([0x40, 0x41]);
 
     const session = createSession();
@@ -181,7 +178,7 @@ const testOnRelease: TestFn | SkipFn = DEBUG_BUILD ? test.skip : test;
     );
   });
 
-  testOnRelease('processProposals() throws on invalid proposals', (t) => {
+  test('processProposals() throws on invalid proposals', (t) => {
     const session = createSession(SessionStatus.PENDING);
 
     t.throws(() => session.processProposals(ProposalsOperationType.APPEND, EMPTY_BUFFER));
@@ -211,7 +208,7 @@ const testOnRelease: TestFn | SkipFn = DEBUG_BUILD ? test.skip : test;
     t.throws(() => createSession(SessionStatus.PENDING).processCommit(EMPTY_BUFFER));
   });
 
-  testOnRelease('processCommit() throws on invalid commit', (t) => {
+  test('processCommit() throws on invalid commit', (t) => {
     const session = createSession(SessionStatus.AWAITING_RESPONSE);
 
     t.throws(() => session.processCommit(EMPTY_BUFFER));

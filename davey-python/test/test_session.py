@@ -104,9 +104,6 @@ def test_set_external_sender_runs_successfully_on_valid_data():
     assert session.status == davey.SessionStatus.pending
 
 
-@pytest.mark.skipif(
-    davey.DEBUG_BUILD, reason="tls-codec panics on invalid data in debug builds"
-)
 def test_set_external_sender_throws_on_invalid_data():
     invalid_external_sender = bytes([0x40, 0x41])
     session = create_session()
@@ -171,9 +168,6 @@ def test_process_proposals_throws_on_inactive_sessions():
         )
 
 
-@pytest.mark.skipif(
-    davey.DEBUG_BUILD, reason="tls-codec panics on invalid data in debug builds"
-)
 def test_process_proposals_throws_on_invalid_proposals():
     session = create_session(davey.SessionStatus.pending)
     with pytest.raises(Exception):
@@ -206,9 +200,6 @@ def test_process_commit_throws_on_non_awaiting_session():
         create_session(davey.SessionStatus.pending).process_commit(EMPTY_BUFFER)
 
 
-@pytest.mark.skipif(
-    davey.DEBUG_BUILD, reason="tls-codec panics on invalid data in debug builds"
-)
 def test_process_commit_throws_on_invalid_commit():
     session = create_session(davey.SessionStatus.awaiting_response)
     with pytest.raises(Exception):
