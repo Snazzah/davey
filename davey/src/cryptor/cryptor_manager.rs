@@ -235,7 +235,11 @@ impl CipherManager {
   }
 
   pub fn update_expiry(&mut self, expiry: Duration) {
-    self.ratchet_expiry = Some(expiry);
+    self.ratchet_expiry = Some(
+      self
+        .ratchet_expiry
+        .map_or(expiry, |current| current.min(expiry)),
+    );
   }
 
   pub fn is_expired(&self) -> bool {
