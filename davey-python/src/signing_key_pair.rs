@@ -14,13 +14,13 @@ impl SigningKeyPair {
     Self { private, public }
   }
 
-  fn __repr__(&self) -> &'static str {
+  fn __repr__(&self) -> String {
     let public_key = &self.public;
     let hex = public_key
       .iter()
       .map(|b| format!("{:02x}", b))
       .collect::<String>();
-    Box::leak(format!("<SigningKeyPair public={}>", hex).into_boxed_str())
+    format!("<SigningKeyPair public={}>", hex)
   }
 }
 
