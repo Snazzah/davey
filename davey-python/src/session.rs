@@ -247,12 +247,10 @@ impl DaveSession {
     media_type: davey::MediaType,
     packet: &[u8],
   ) -> PyResult<Vec<u8>> {
-    let result = self
+    self
       .inner
       .decrypt(user_id, media_type, packet)
-      .map_err(|err| py_value_error!("Failed to decrypt: {err:?}"))?;
-
-    Ok(result.to_owned().to_vec())
+      .map_err(|err| py_value_error!("Failed to decrypt: {err:?}"))
   }
 
   #[pyo3(signature = (user_id, media_type=None))]

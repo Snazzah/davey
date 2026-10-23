@@ -87,11 +87,10 @@ impl Decryptor {
 
     // Skip decrypting for silence frames
     // This may change in the future, see: https://daveprotocol.com/#silence-packets
-    if encrypted_frame.len() == OPUS_SILENCE_PACKET.len()
-      && encrypted_frame.to_vec() == OPUS_SILENCE_PACKET.to_vec()
-    {
-      frame[..OPUS_SILENCE_PACKET.len()].clone_from_slice(&OPUS_SILENCE_PACKET);
-      return Ok(OPUS_SILENCE_PACKET.len());
+    if encrypted_frame == OPUS_SILENCE_PACKET {
+      let copy_size = min(frame.len(), encrypted_frame.len());
+      frame[..copy_size].copy_from_slice(&encrypted_frame[..copy_size]);
+      return Ok(copy_size);
     }
 
     // Remove any expired cryptor manager
@@ -105,11 +104,12 @@ impl Decryptor {
 
     // If the frame is not encrypted and we can pass it through, do it
     if !local_frame.encrypted && self.can_passthrough() {
-      frame[..encrypted_frame.len()].clone_from_slice(encrypted_frame);
+      let copy_size = min(frame.len(), encrypted_frame.len());
+      frame[..copy_size].copy_from_slice(&encrypted_frame[..copy_size]);
       let stats = self.stats.get_mut(&media_type).unwrap();
       stats.passthroughs += 1;
       self.return_frame_processor(local_frame);
-      return Ok(encrypted_frame.len());
+      return Ok(copy_size);
     }
 
     let stats = self.stats.get_mut(&media_type).unwrap();

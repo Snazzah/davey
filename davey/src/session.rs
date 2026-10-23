@@ -901,15 +901,28 @@ impl DaveSession {
     media_type: MediaType,
     packet: &[u8],
   ) -> Result<Vec<u8>, DecryptError> {
+    let mut frame = vec![0u8; Decryptor::get_max_plaintext_byte_size(media_type, packet.len())];
+    let frame_length = self.decrypt_into(user_id, media_type, packet, &mut frame)?;
+
+    frame.truncate(frame_length);
+    Ok(frame)
+  }
+
+  /// Decrypt an end-to-end encrypted packet into a provided buffer, returning the number of bytes written.
+  /// To keep parity with libdave, this writes as much as the buffer allows,
+  /// the provided buffer should at least be the length of the encrypted packet.
+  pub fn decrypt_into(
+    &mut self,
+    user_id: u64,
+    media_type: MediaType,
+    packet: &[u8],
+    frame: &mut [u8],
+  ) -> Result<usize, DecryptError> {
     let Some(decryptor) = self.decryptors.get_mut(&user_id) else {
       return Err(DecryptError::NoDecryptorForUser);
     };
 
-    let mut frame = vec![0u8; Decryptor::get_max_plaintext_byte_size(media_type, packet.len())];
-    let frame_length = decryptor.decrypt(media_type, packet, &mut frame)?;
-
-    frame.resize(frame_length, 0);
-    Ok(frame)
+    Ok(decryptor.decrypt(media_type, packet, frame)?)
   }
 
   /// Get decryption stats.
