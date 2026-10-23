@@ -88,7 +88,7 @@ jobs:
             distro: ubuntu24.04
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.3.2
       - name: Set up Python
         run: uv python install
       - name: Build wheels
@@ -167,7 +167,7 @@ jobs:
             arch: armv7
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.3.2
       - uses: actions/setup-python@v7
         with:
           python-version: |
@@ -237,7 +237,7 @@ jobs:
             target: x86
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.3.2
       - uses: actions/setup-python@v7
         with:
           python-version: 3.x
@@ -276,7 +276,7 @@ jobs:
             target: aarch64
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.3.2
       - uses: actions/setup-python@v7
         with:
           python-version: |
