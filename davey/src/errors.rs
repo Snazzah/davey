@@ -98,6 +98,7 @@ pub enum PendingGroupError {
 }
 
 #[derive(Error, Debug)]
+#[non_exhaustive]
 pub enum ProcessProposalsError {
   #[error("cannot process proposals without a group")]
   NoGroup,
@@ -128,6 +129,7 @@ pub enum ProcessProposalsError {
 }
 
 #[derive(Error, Debug)]
+#[non_exhaustive]
 pub enum ProcessWelcomeError {
   #[error("cannot process welcome when already in a group")]
   AlreadyInGroup,
@@ -156,6 +158,7 @@ pub enum ProcessWelcomeError {
 }
 
 #[derive(Error, Debug)]
+#[non_exhaustive]
 pub enum ProcessCommitError {
   #[error("cannot process commit without a group")]
   NoGroup,
@@ -226,6 +229,7 @@ pub enum EncryptError {
 }
 
 #[derive(Error, Debug)]
+#[non_exhaustive]
 pub enum DecryptError {
   #[error("user has no decryptor")]
   NoDecryptorForUser,
@@ -238,6 +242,7 @@ pub enum DecryptError {
 pub struct NoDecryptorForUser;
 
 #[derive(Error, Debug)]
+#[non_exhaustive]
 pub enum DecryptorDecryptError {
   #[error("provided frame was unencrypted when passthrough mode was disabled")]
   UnencryptedWhenPassthroughDisabled,
