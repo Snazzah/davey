@@ -13,6 +13,24 @@ opt-level = "z"  # Optimize for size.
 lto = true
 codegen-units = 1
 
+# Dependency release optimizations
+[profile.release.package.davey]
+opt-level = 3
+[profile.release.package.aes]
+opt-level = 3
+[profile.release.package.ghash]
+opt-level = 3
+[profile.release.package.polyval]
+opt-level = 3
+[profile.release.package.ctr]
+opt-level = 3
+[profile.release.package.cipher]
+opt-level = 3
+[profile.release.package.scrypt]
+opt-level = 3
+[profile.release.package.salsa20]
+opt-level = 3
+
 # Pairwise fingerprints use scrypt, which is very slow without optimizations
 [profile.dev.package.scrypt]
 opt-level = 3
