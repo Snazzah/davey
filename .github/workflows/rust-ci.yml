@@ -1,9 +1,16 @@
-name: Check formatting
+name: "[davey] CI"
 on:
   push:
     branches:
       - master
   pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   fmt:
@@ -18,6 +25,7 @@ jobs:
 
       - name: Rustfmt Check
         uses: actions-rust-lang/rustfmt@v1
+
   clippy:
     name: clippy
     runs-on: ubuntu-latest
@@ -30,3 +38,18 @@ jobs:
 
       - name: Run clippy
         run: cargo clippy --all --manifest-path=./Cargo.toml -- -D warnings
+
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
+
+      - name: Run tests for davey crate
+        run: cargo test -p davey

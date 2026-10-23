@@ -4,6 +4,9 @@ on:
   workflow_dispatch: null
   workflow_call:
 
+permissions:
+  contents: read
+
 defaults:
   run:
     working-directory: davey-python
