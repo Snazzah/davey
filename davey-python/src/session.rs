@@ -269,17 +269,8 @@ impl DaveSession {
     Ok(result.map(|s| s.to_owned()))
   }
 
-  fn get_user_ids(&self) -> Vec<String> {
-    self
-      .inner
-      .get_user_ids()
-      .map(|ids| {
-        ids
-          .into_iter()
-          .map(|id| id.to_string())
-          .collect::<Vec<String>>()
-      })
-      .unwrap_or_default()
+  fn get_user_ids(&self) -> Vec<u64> {
+    self.inner.get_user_ids().unwrap_or_default()
   }
 
   fn can_passthrough(&self, user_id: u64) -> bool {
@@ -293,15 +284,14 @@ impl DaveSession {
       .set_passthrough_mode(passthrough_mode, transition_expiry);
   }
 
-  fn __repr__(&self) -> &'static str {
-    let s = format!(
+  fn __repr__(&self) -> String {
+    format!(
       "<DaveSession protocol_version={}, user_id={}, channel_id={}, ready={}, status={:?}>",
       self.inner.protocol_version(),
       self.inner.user_id(),
       self.inner.channel_id(),
       self.inner.is_ready(),
       self.inner.status()
-    );
-    Box::leak(s.into_boxed_str())
+    )
   }
 }

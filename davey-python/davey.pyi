@@ -328,7 +328,7 @@ class DaveSession:
         :param media_type: The media type to get stats for. Defaults to audio.
         """
         ...
-    def get_user_ids(self) -> List[str]:
+    def get_user_ids(self) -> List[int]:
         """Get the IDs of the users in the current group."""
         ...
     def can_passthrough(self, user_id: int) -> bool:

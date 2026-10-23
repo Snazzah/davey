@@ -236,15 +236,13 @@ def test_own_leaf_index_behavior():
 
 def test_get_user_ids():
     assert create_session(davey.SessionStatus.inactive).get_user_ids() == []
-    assert create_session(davey.SessionStatus.pending).get_user_ids() == [
-        str(MY_USER_ID)
-    ]
+    assert create_session(davey.SessionStatus.pending).get_user_ids() == [MY_USER_ID]
     assert create_session(davey.SessionStatus.awaiting_response).get_user_ids() == [
-        str(MY_USER_ID)
+        MY_USER_ID
     ]
     assert create_session(davey.SessionStatus.active).get_user_ids() == [
-        str(MY_USER_ID),
-        str(OTHER_USER_ID),
+        MY_USER_ID,
+        OTHER_USER_ID,
     ]
 
 
