@@ -5,7 +5,7 @@ use tracing::warn;
 use super::{
   Codec,
   frame_processors::OutboundFrameProcessor,
-  leb128::{leb128_size, read_leb128, write_leb128},
+  leb128::{leb128_size, read_leb128, write_leb128, LEB128_MAX_SIZE},
 };
 
 const NALU_SHORT_START_SEQUENCE_SIZE: usize = 3;
@@ -356,9 +356,10 @@ pub fn process_frame_av1(processor: &mut OutboundFrameProcessor, frame: &[u8]) -
     // write the OBU payload size unencrypted if it was present and we didn't rewrite
     // without it
     if obu_has_size && !rewritten_without_size {
-      let mut leb128_buffer = vec![0u8; leb128_size(obu_payload_size as u64)];
-      write_leb128(obu_payload_size as u64, leb128_buffer.as_mut_slice());
-      processor.add_unencrypted_bytes(&leb128_buffer);
+      let mut leb128_buffer = [0u8; LEB128_MAX_SIZE];
+      let leb128_buffer = &mut leb128_buffer[..leb128_size(obu_payload_size as u64)];
+      write_leb128(obu_payload_size as u64, leb128_buffer);
+      processor.add_unencrypted_bytes(leb128_buffer);
     }
 
     // add the OBU payload, encrypted

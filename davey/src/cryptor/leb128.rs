@@ -1,4 +1,4 @@
-// const LEB128_MAX_SIZE = 10
+pub const LEB128_MAX_SIZE: usize = 10;
 
 pub fn leb128_size(value: u64) -> usize {
   let mut size: usize = 0;
