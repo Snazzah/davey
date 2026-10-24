@@ -120,7 +120,7 @@ impl Decryptor {
       return Err(DecryptorDecryptError::UnencryptedWhenPassthroughDisabled);
     }
 
-    let success = self.cryptor_managers.iter_mut().any(|cryptor_manager| {
+    let success = self.cryptor_managers.iter_mut().rev().any(|cryptor_manager| {
       stats.attempts += 1;
 
       Self::decrypt_impl(cryptor_manager, &mut local_frame)
