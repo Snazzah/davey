@@ -260,20 +260,32 @@ impl Encryptor {
     success
   }
 
-  pub fn get_max_ciphertext_byte_size(codec: Codec, frame: &[u8]) -> usize {
-    let mut frame_processor = OutboundFrameProcessor::new();
-    frame_processor.process_frame(frame, codec);
-    let frame_size =
-      frame_processor.encrypted_bytes.len() + frame_processor.unencrypted_bytes.len();
-    let ranges_size = unencrypted_ranges_size(&frame_processor.unencrypted_ranges);
+  pub fn encrypt_to_vec(
+    &mut self,
+    media_type: &MediaType,
+    codec: Codec,
+    frame: &[u8],
+    encrypted_frame: &mut Vec<u8>,
+  ) -> bool {
+    encrypted_frame.resize(
+      Self::get_max_ciphertext_byte_size(*media_type, frame.len()),
+      0,
+    );
 
-    frame_size
-      + AES_GCM_127_TRUNCATED_TAG_BYTES
-      + leb128_size(u32::MAX as u64)
-      + ranges_size
-      + 1
-      + MARKER_BYTES.len()
-      + TRANSFORM_PADDING_BYTES
+    let mut bytes_written = 0;
+    let success = self.encrypt(
+      media_type,
+      codec,
+      frame,
+      encrypted_frame,
+      &mut bytes_written,
+    );
+    encrypted_frame.truncate(if success { bytes_written } else { 0 });
+    success
+  }
+
+  pub fn get_max_ciphertext_byte_size(_media_type: MediaType, frame_size: usize) -> usize {
+    frame_size + SUPPLEMENTAL_BYTES + TRANSFORM_PADDING_BYTES
   }
 
   fn get_next_cryptor_and_nonce(&mut self) -> (Option<&AeadCipher>, u32) {

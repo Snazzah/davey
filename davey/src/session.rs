@@ -862,22 +862,40 @@ impl DaveSession {
       return Ok(Cow::Borrowed(packet));
     }
 
-    let mut out_size: usize = 0;
-    let mut encrypted_buffer = vec![0u8; Encryptor::get_max_ciphertext_byte_size(codec, packet)];
+    let mut encrypted_packet = Vec::new();
+    self.encrypt_into(media_type, codec, packet, &mut encrypted_packet)?;
 
-    let success = self.encryptor.encrypt(
-      &media_type,
-      codec,
-      packet,
-      &mut encrypted_buffer,
-      &mut out_size,
-    );
-    if !success {
+    Ok(Cow::Owned(encrypted_packet))
+  }
+
+  /// End-to-end encrypt a packet into a provided buffer, which is resized to fit the encrypted packet.
+  pub fn encrypt_into(
+    &mut self,
+    media_type: MediaType,
+    codec: Codec,
+    packet: &[u8],
+    encrypted_packet: &mut Vec<u8>,
+  ) -> Result<(), EncryptError> {
+    if !self.is_ready {
+      return Err(EncryptError::NotReady);
+    }
+
+    // Return the packet back to the client (passthrough) if the packet is a silence packet
+    // This may change in the future, see: https://daveprotocol.com/#silence-packets
+    if packet == OPUS_SILENCE_PACKET {
+      encrypted_packet.clear();
+      encrypted_packet.extend_from_slice(packet);
+      return Ok(());
+    }
+
+    if !self
+      .encryptor
+      .encrypt_to_vec(&media_type, codec, packet, encrypted_packet)
+    {
       return Err(EncryptError::EncryptionFailed);
     }
-    encrypted_buffer.resize(out_size, 0);
 
-    Ok(Cow::Owned(encrypted_buffer))
+    Ok(())
   }
 
   /// End-to-end encrypt an opus packet.
