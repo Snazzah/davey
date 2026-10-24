@@ -1,4 +1,4 @@
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::PyBytes};
 use std::num::NonZeroU16;
 
 use crate::signing_key_pair::SigningKeyPair;
@@ -22,6 +22,8 @@ impl From<davey::CommitWelcome> for CommitWelcome {
 #[pyclass]
 pub struct DaveSession {
   inner: Box<davey::DaveSession>,
+  // Reused in encrypt & decrypt to avoid reallocating
+  buffer: Vec<u8>,
 }
 
 #[pymethods]
@@ -52,6 +54,7 @@ impl DaveSession {
 
     Ok(Self {
       inner: Box::new(session),
+      buffer: Vec::new(),
     })
   }
 
@@ -212,22 +215,23 @@ impl DaveSession {
       .map_err(|e| py_value_error!("failed to generate pairwise fingerprint: {:?}", e))
   }
 
-  fn encrypt(
+  fn encrypt<'py>(
     &mut self,
+    py: Python<'py>,
     media_type: davey::MediaType,
     codec: davey::Codec,
     packet: &[u8],
-  ) -> PyResult<Vec<u8>> {
-    let result = self
+  ) -> PyResult<Bound<'py, PyBytes>> {
+    self
       .inner
-      .encrypt(media_type, codec, packet)
+      .encrypt_into(media_type, codec, packet, &mut self.buffer)
       .map_err(|err| py_value_error!("Failed to encrypt: {err:?}"))?;
 
-    Ok(result.into_owned().to_vec())
+    Ok(PyBytes::new(py, &self.buffer))
   }
 
-  fn encrypt_opus(&mut self, packet: &[u8]) -> PyResult<Vec<u8>> {
-    self.encrypt(davey::MediaType::AUDIO, davey::Codec::OPUS, packet)
+  fn encrypt_opus<'py>(&mut self, py: Python<'py>, packet: &[u8]) -> PyResult<Bound<'py, PyBytes>> {
+    self.encrypt(py, davey::MediaType::AUDIO, davey::Codec::OPUS, packet)
   }
 
   #[pyo3(signature = (media_type=None))]
@@ -241,16 +245,20 @@ impl DaveSession {
       .map(|s| s.to_owned())
   }
 
-  fn decrypt(
+  fn decrypt<'py>(
     &mut self,
+    py: Python<'py>,
     user_id: u64,
     media_type: davey::MediaType,
     packet: &[u8],
-  ) -> PyResult<Vec<u8>> {
-    self
+  ) -> PyResult<Bound<'py, PyBytes>> {
+    self.buffer.resize(packet.len(), 0);
+    let frame_length = self
       .inner
-      .decrypt(user_id, media_type, packet)
-      .map_err(|err| py_value_error!("Failed to decrypt: {err:?}"))
+      .decrypt_into(user_id, media_type, packet, &mut self.buffer)
+      .map_err(|err| py_value_error!("Failed to decrypt: {err:?}"))?;
+
+    Ok(PyBytes::new(py, &self.buffer[..frame_length]))
   }
 
   #[pyo3(signature = (user_id, media_type=None))]

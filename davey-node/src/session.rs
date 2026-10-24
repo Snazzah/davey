@@ -1,7 +1,10 @@
 use std::num::NonZeroU16;
 
 use crate::{AsyncPairwiseFingerprintSession, AsyncSessionVerificationCode, SigningKeyPair};
-use napi::bindgen_prelude::{AsyncTask, Buffer};
+use napi::{
+  bindgen_prelude::{AsyncTask, Buffer, BufferSlice},
+  Env,
+};
 
 pub use davey::{
   Codec, DecryptionStats, EncryptionStats, MediaType, ProposalsOperationType, SessionStatus,
@@ -11,6 +14,8 @@ pub use davey::{
 #[napi(js_name = "DAVESession")]
 pub struct DaveSession {
   inner: Box<davey::DaveSession>,
+  // Reused in encrypt & decrypt to avoid reallocating
+  buffer: Vec<u8>,
 }
 
 #[napi(object)]
@@ -40,6 +45,7 @@ impl DaveSession {
 
     Ok(Self {
       inner: Box::new(session),
+      buffer: Vec::new(),
     })
   }
 
@@ -352,26 +358,31 @@ impl DaveSession {
   /// @param codec The codec of the packet
   /// @param packet The packet to encrypt
   #[napi]
-  pub fn encrypt(
+  pub fn encrypt<'env>(
     &mut self,
+    env: &'env Env,
     media_type: MediaType,
     codec: Codec,
-    packet: Buffer,
-  ) -> napi::Result<Buffer> {
-    let result = self
+    packet: BufferSlice,
+  ) -> napi::Result<BufferSlice<'env>> {
+    self
       .inner
-      .encrypt(media_type, codec, &packet)
+      .encrypt_into(media_type, codec, &packet, &mut self.buffer)
       .map_err(|err| napi_error!("Failed to encrypt: {err:?}"))?;
 
-    Ok(Buffer::from(result.into_owned()))
+    BufferSlice::copy_from(env, &self.buffer)
   }
 
   /// End-to-end encrypt an opus packet.
   /// This is the shorthand for `encrypt(MediaType.AUDIO, Codec.OPUS, packet)`
   /// @param packet The packet to encrypt
   #[napi]
-  pub fn encrypt_opus(&mut self, packet: Buffer) -> napi::Result<Buffer> {
-    self.encrypt(MediaType::AUDIO, Codec::OPUS, packet)
+  pub fn encrypt_opus<'env>(
+    &mut self,
+    env: &'env Env,
+    packet: BufferSlice,
+  ) -> napi::Result<BufferSlice<'env>> {
+    self.encrypt(env, MediaType::AUDIO, Codec::OPUS, packet)
   }
 
   /// Get encryption stats.
@@ -389,22 +400,24 @@ impl DaveSession {
   /// @param mediaType The type of media to decrypt
   /// @param packet The packet to decrypt
   #[napi]
-  pub fn decrypt(
+  pub fn decrypt<'env>(
     &mut self,
+    env: &'env Env,
     user_id: String,
     media_type: MediaType,
-    packet: Buffer,
-  ) -> napi::Result<Buffer> {
+    packet: BufferSlice,
+  ) -> napi::Result<BufferSlice<'env>> {
     let uid = user_id
       .parse::<u64>()
       .map_err(|_| napi_invalid_arg_error!("Invalid user id"))?;
 
-    let result = self
+    self.buffer.resize(packet.len(), 0);
+    let frame_length = self
       .inner
-      .decrypt(uid, media_type, &packet)
+      .decrypt_into(uid, media_type, &packet, &mut self.buffer)
       .map_err(|err| napi_error!("Failed to decrypt: {err:?}"))?;
 
-    Ok(Buffer::from(result))
+    BufferSlice::copy_from(env, &self.buffer[..frame_length])
   }
 
   /// Get decryption stats.
