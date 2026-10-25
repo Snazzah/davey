@@ -14,32 +14,6 @@ export declare const enum Codec {
 /** The maximum supported version of the DAVE protocol. */
 export const DAVE_PROTOCOL_VERSION: number
 
-export interface DecryptionStats {
-  /** Number of decryption successes */
-  successes: number
-  /** Number of decryption failures */
-  failures: number
-  /** Total decryption duration in microseconds */
-  duration: number
-  /** Total amounts of decryption attempts */
-  attempts: number
-  /** Total amounts of packets that passed through */
-  passthroughs: number
-}
-
-export interface EncryptionStats {
-  /** Number of encryption successes */
-  successes: number
-  /** Number of encryption failures */
-  failures: number
-  /** Total encryption duration in microseconds */
-  duration: number
-  /** Total amounts of encryption attempts */
-  attempts: number
-  /** Maximum attempts reached at encryption */
-  maxAttempts: number
-}
-
 /** The type of media being referenced. */
 export declare const enum MediaType {
   AUDIO = 0,
@@ -211,6 +185,32 @@ export type DaveSession = DAVESession
 
 /** Whether davey is using a debug build. */
 export const DEBUG_BUILD: boolean
+
+export interface DecryptionStats {
+  /** Number of decryption successes */
+  successes: number
+  /** Number of decryption failures */
+  failures: number
+  /** Total decryption duration in microseconds */
+  duration: number
+  /** Total amounts of decryption attempts */
+  attempts: number
+  /** Total amounts of packets that passed through */
+  passthroughs: number
+}
+
+export interface EncryptionStats {
+  /** Number of encryption successes */
+  successes: number
+  /** Number of encryption failures */
+  failures: number
+  /** Total encryption duration in microseconds */
+  duration: number
+  /** Total amounts of encryption attempts */
+  attempts: number
+  /** Maximum attempts reached at encryption */
+  maxAttempts: number
+}
 
 /**
  * Generate a displayable code.

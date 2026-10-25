@@ -1,5 +1,3 @@
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use std::{collections::HashMap, time::Instant};
 
 use tracing::warn;
@@ -16,20 +14,19 @@ use super::{
   *,
 };
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, from_py_object))]
 #[derive(Clone)]
 pub struct EncryptionStats {
   /// Number of encryption successes
-  pub successes: u32,
+  pub successes: u64,
   /// Number of encryption failures
-  pub failures: u32,
+  pub failures: u64,
   /// Total encryption duration in microseconds
-  pub duration: u32,
+  pub duration: u64,
   /// Total amounts of encryption attempts
-  pub attempts: u32,
+  pub attempts: u64,
   /// Maximum attempts reached at encryption
-  pub max_attempts: u32,
+  pub max_attempts: u64,
 }
 
 pub struct Encryptor {
@@ -167,7 +164,7 @@ impl Encryptor {
 
       let stats = self.stats.get_mut(media_type).unwrap();
       stats.attempts += 1;
-      stats.max_attempts = stats.max_attempts.max(attempt as u32);
+      stats.max_attempts = stats.max_attempts.max(attempt as u64);
 
       let size = leb128_size(truncated_nonce as u64);
       let encrypted_frame_bytes =
@@ -247,7 +244,7 @@ impl Encryptor {
     }
 
     let stats = self.stats.get_mut(media_type).unwrap();
-    stats.duration += start.elapsed().as_micros() as u32;
+    stats.duration += start.elapsed().as_micros() as u64;
     if success {
       stats.successes += 1;
     } else {

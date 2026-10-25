@@ -6,10 +6,7 @@ use napi::{
   Env,
 };
 
-pub use davey::{
-  Codec, DecryptionStats, EncryptionStats, MediaType, ProposalsOperationType, SessionStatus,
-  DAVE_PROTOCOL_VERSION,
-};
+pub use davey::{Codec, MediaType, ProposalsOperationType, SessionStatus, DAVE_PROTOCOL_VERSION};
 
 #[napi(js_name = "DAVESession")]
 pub struct DaveSession {
@@ -22,6 +19,63 @@ pub struct DaveSession {
 pub struct ProposalsResult {
   pub commit: Option<Buffer>,
   pub welcome: Option<Buffer>,
+}
+
+// The core stats are u64, which napi converts to a BigInt. These use i64 so they stay a JS number.
+fn stat_to_number(value: u64) -> i64 {
+  i64::try_from(value).unwrap_or(i64::MAX)
+}
+
+#[napi(object)]
+pub struct EncryptionStats {
+  /// Number of encryption successes
+  pub successes: i64,
+  /// Number of encryption failures
+  pub failures: i64,
+  /// Total encryption duration in microseconds
+  pub duration: i64,
+  /// Total amounts of encryption attempts
+  pub attempts: i64,
+  /// Maximum attempts reached at encryption
+  pub max_attempts: i64,
+}
+
+impl From<&davey::EncryptionStats> for EncryptionStats {
+  fn from(stats: &davey::EncryptionStats) -> Self {
+    Self {
+      successes: stat_to_number(stats.successes),
+      failures: stat_to_number(stats.failures),
+      duration: stat_to_number(stats.duration),
+      attempts: stat_to_number(stats.attempts),
+      max_attempts: stat_to_number(stats.max_attempts),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct DecryptionStats {
+  /// Number of decryption successes
+  pub successes: i64,
+  /// Number of decryption failures
+  pub failures: i64,
+  /// Total decryption duration in microseconds
+  pub duration: i64,
+  /// Total amounts of decryption attempts
+  pub attempts: i64,
+  /// Total amounts of packets that passed through
+  pub passthroughs: i64,
+}
+
+impl From<&davey::DecryptionStats> for DecryptionStats {
+  fn from(stats: &davey::DecryptionStats) -> Self {
+    Self {
+      successes: stat_to_number(stats.successes),
+      failures: stat_to_number(stats.failures),
+      duration: stat_to_number(stats.duration),
+      attempts: stat_to_number(stats.attempts),
+      passthroughs: stat_to_number(stats.passthroughs),
+    }
+  }
 }
 
 #[napi]
@@ -392,7 +446,7 @@ impl DaveSession {
     self
       .inner
       .get_encryption_stats(media_type)
-      .map(|s| s.to_owned())
+      .map(EncryptionStats::from)
   }
 
   /// Decrypt an end-to-end encrypted packet.
@@ -438,7 +492,7 @@ impl DaveSession {
       .get_decryption_stats(uid, media_type.unwrap_or(MediaType::AUDIO))
       .map_err(|err| napi_error!("Failed to get decryption stats: {err:?}"))?;
 
-    Ok(result.map(|s| s.to_owned()))
+    Ok(result.map(DecryptionStats::from))
   }
 
   /// Get the IDs of the users in the current group.

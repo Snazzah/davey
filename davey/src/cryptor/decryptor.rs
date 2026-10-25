@@ -1,5 +1,3 @@
-#[cfg(feature = "napi")]
-use napi_derive::napi;
 use std::{
   cmp::min,
   collections::{HashMap, VecDeque},
@@ -16,20 +14,19 @@ use super::{
   hash_ratchet::HashRatchet, *,
 };
 
-#[cfg_attr(feature = "napi", napi(object))]
 #[cfg_attr(feature = "pyo3", pyclass(get_all, from_py_object))]
 #[derive(Clone)]
 pub struct DecryptionStats {
   /// Number of decryption successes
-  pub successes: u32,
+  pub successes: u64,
   /// Number of decryption failures
-  pub failures: u32,
+  pub failures: u64,
   /// Total decryption duration in microseconds
-  pub duration: u32,
+  pub duration: u64,
   /// Total amounts of decryption attempts
-  pub attempts: u32,
+  pub attempts: u64,
   /// Total amounts of packets that passed through
-  pub passthroughs: u32,
+  pub passthroughs: u64,
 }
 
 pub struct Decryptor {
@@ -144,7 +141,7 @@ impl Decryptor {
     };
 
     let stats = self.stats.get_mut(&media_type).unwrap();
-    stats.duration += start.elapsed().as_micros() as u32;
+    stats.duration += start.elapsed().as_micros() as u64;
 
     // FIXME this technically should return when local_frame drops, but thats gonna be a bit annoying here
     self.return_frame_processor(local_frame);
