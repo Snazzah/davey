@@ -650,6 +650,10 @@ impl DaveSession {
       return Err(ProcessCommitError::PendingGroup);
     }
 
+    if group.pending_proposals().next().is_none() {
+      return Err(ProcessCommitError::NoQueuedProposals);
+    }
+
     debug!("Processing commit");
 
     let mls_message = MlsMessageIn::tls_deserialize_exact_bytes(commit)
@@ -659,26 +663,39 @@ impl DaveSession {
       .try_into_protocol_message()
       .map_err(ProcessCommitError::MessageNotPrivateOrPublic)?;
 
+    let is_own_commit = self.pending_commit_bytes.as_deref() == Some(commit);
+    if group.epoch().as_u64() == 0 && !is_own_commit {
+      return Err(ProcessCommitError::CommitBeforeWelcome);
+    }
+
     if protocol_message.group_id().as_slice() != self.group_id.as_slice() {
       return Err(ProcessCommitError::MessageForDifferentGroup);
     }
 
-    let epoch_before = group.epoch().as_u64();
+    let ProtocolMessage::PublicMessage(public_message) = &protocol_message else {
+      return Err(ProcessCommitError::UnexpectedWireFormat);
+    };
+
+    if public_message.epoch() != group.epoch() {
+      return Err(ProcessCommitError::EpochMismatch);
+    }
+
+    if public_message.content_type() != ContentType::Commit {
+      return Err(ProcessCommitError::UnexpectedContentType);
+    }
+
+    let Sender::Member(committer) = *public_message.sender() else {
+      return Err(ProcessCommitError::UnexpectedSenderType);
+    };
 
     match group.process_message(&self.provider, protocol_message) {
-      Ok(message) => {
-        let committer = match message.sender() {
-          Sender::Member(index) => Some(*index),
-          _ => None,
-        };
-        match message.into_content() {
-          ProcessedMessageContent::StagedCommitMessage(staged_commit) => {
-            validate_staged_commit_roster(group, &staged_commit, committer)?;
-            group.merge_staged_commit(&self.provider, *staged_commit)?;
-          }
-          _ => return Err(ProcessCommitError::ProcessedMessageNotStagedCommit),
+      Ok(message) => match message.into_content() {
+        ProcessedMessageContent::StagedCommitMessage(staged_commit) => {
+          validate_staged_commit(group, &staged_commit, committer)?;
+          group.merge_staged_commit(&self.provider, *staged_commit)?;
         }
-      }
+        _ => return Err(ProcessCommitError::ProcessedMessageNotStagedCommit),
+      },
       Err(ProcessMessageError::InvalidCommit(StageCommitError::OwnCommit)) => {
         // This is our own commit, so merge our pending commit instead.
         match &self.pending_commit_bytes {
@@ -687,7 +704,7 @@ impl DaveSession {
             let Some(staged_commit) = group.pending_commit() else {
               return Err(ProcessCommitError::NoPendingCommit);
             };
-            validate_staged_commit_roster(group, staged_commit, Some(group.own_leaf_index()))?;
+            validate_staged_commit(group, staged_commit, group.own_leaf_index())?;
             group.merge_pending_commit(&self.provider)?;
           }
           Some(_) => return Err(ProcessCommitError::OwnCommitMismatch),
@@ -697,11 +714,6 @@ impl DaveSession {
       Err(error) => return Err(ProcessCommitError::ProcessingMessageFailed(error)),
     }
     self.pending_commit_bytes = None;
-
-    // Never re-key without moving to the next epoch
-    if group.epoch().as_u64() != epoch_before + 1 {
-      return Err(ProcessCommitError::EpochDidNotAdvance);
-    }
 
     debug!(
       "Commit processed successfully, our leaf index is {:?}, our epoch is {:?}",
@@ -1070,14 +1082,24 @@ fn validate_projected_roster<'a>(
   validate_roster(roster.into_values().chain(added))
 }
 
-/// Validates the roster that results from merging a staged commit
-fn validate_staged_commit_roster(
+fn validate_staged_commit(
   group: &MlsGroup,
   staged_commit: &StagedCommit,
-  committer: Option<LeafNodeIndex>,
-) -> Result<(), RosterError> {
-  let update_path = committer.zip(staged_commit.update_path_leaf_node());
-  validate_projected_roster(group, staged_commit.queued_proposals(), update_path)
+  committer: LeafNodeIndex,
+) -> Result<(), ProcessCommitError> {
+  if staged_commit
+    .queued_proposals()
+    .any(|proposal| proposal.proposal_or_ref_type() != ProposalOrRefType::Reference)
+  {
+    return Err(ProcessCommitError::UnexpectedNonRefProposal);
+  }
+
+  let update_path = staged_commit
+    .update_path_leaf_node()
+    .map(|leaf_node| (committer, leaf_node));
+  validate_projected_roster(group, staged_commit.queued_proposals(), update_path)?;
+
+  Ok(())
 }
 
 impl Debug for DaveSession {

@@ -1,7 +1,7 @@
 //! Ported from libdave
 //! [`cpp/test/mls_session_tests.cpp`](https://github.com/discord/libdave/blob/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169/cpp/test/mls_session_tests.cpp)
 
-use std::num::NonZeroU16;
+use std::{collections::HashSet, num::NonZeroU16};
 
 use openmls::prelude::{tls_codec::Serialize, *};
 use openmls_basic_credential::SignatureKeyPair;
@@ -21,6 +21,7 @@ const OTHER_GROUP_ID: u64 = 9876543210;
 const USER_A: u64 = 1234123412341234;
 const USER_B: u64 = 5678567856785678;
 const USER_C: u64 = 9012901290129012;
+const USER_D: u64 = 3456345634563456;
 
 /// Plays the role of the voice gateway's external sender.
 ///
@@ -91,10 +92,6 @@ fn init_and_set_external_sender(
   session
 }
 
-/// Has the external sender propose adding `joiner` to `creator`'s pending group
-/// and returns the commit and welcome that `creator` produces for it.
-///
-/// libdave: `ProposeAddAndCommit` in
 /// [`cpp/test/mls_session_tests.cpp`](https://github.com/discord/libdave/blob/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169/cpp/test/mls_session_tests.cpp#L71-L89)
 fn propose_add_and_commit(
   external_sender: &TestExternalSender,
@@ -112,6 +109,41 @@ fn propose_add_and_commit(
     )
     .unwrap()
     .expect("a commit should be produced")
+}
+
+/// [`cpp/test/mls_session_tests.cpp`](https://github.com/discord/libdave/blob/6396c90a/cpp/test/mls_session_tests.cpp#L94-L109)
+fn establish_group(
+  external_sender: &TestExternalSender,
+  creator: &mut DaveSession,
+  joiner: &mut DaveSession,
+) {
+  let commit_welcome = propose_add_and_commit(external_sender, creator, joiner);
+  creator.process_commit(&commit_welcome.commit).unwrap();
+  joiner
+    .process_welcome(
+      &commit_welcome
+        .welcome
+        .expect("a welcome should be produced"),
+      Some(&[creator.user_id(), joiner.user_id()]),
+    )
+    .unwrap();
+}
+
+/// [`cpp/test/mls_session_tests.cpp`](https://github.com/discord/libdave/blob/6396c90a/cpp/test/mls_session_tests.cpp#L113-L124)
+fn prepare_commit(
+  committer: &mut DaveSession,
+  proposals: &[u8],
+  recognized_user_ids: &[u64],
+) -> Vec<u8> {
+  committer
+    .process_proposals(
+      ProposalsOperationType::APPEND,
+      proposals,
+      Some(recognized_user_ids),
+    )
+    .unwrap()
+    .expect("a commit should be produced")
+    .commit
 }
 
 /// libdave: [`MlsSessionTests.SessionJoinViaCommitAndWelcome`](https://github.com/discord/libdave/blob/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169/cpp/test/mls_session_tests.cpp#L95)
@@ -195,7 +227,96 @@ fn commit_before_welcome_is_rejected() {
   // b has not been welcomed into any group, so a's commit must be rejected
   // rather than applied to b's unrelated pending group
   // libdave: "Unexpected commit before welcome"
-  assert!(b.process_commit(&commit_welcome_a.commit).is_err());
+  assert!(matches!(
+    b.process_commit(&commit_welcome_a.commit),
+    Err(ProcessCommitError::CommitBeforeWelcome)
+  ));
+}
+
+/// libdave: [`MlsSessionTests.SessionOwnCommitMustMatchPreparedCommit`](https://github.com/discord/libdave/blob/6396c90a/cpp/test/mls_session_tests.cpp#L218)
+#[test]
+fn own_commit_must_match_prepared_commit() {
+  let external_sender = TestExternalSender::new(TEST_GROUP_ID);
+  let mut a = init_and_set_external_sender(USER_A, &external_sender, TEST_GROUP_ID);
+  let mut b = init_and_set_external_sender(USER_B, &external_sender, TEST_GROUP_ID);
+  let mut c = init_and_set_external_sender(USER_C, &external_sender, TEST_GROUP_ID);
+  let mut d = init_and_set_external_sender(USER_D, &external_sender, TEST_GROUP_ID);
+
+  establish_group(&external_sender, &mut a, &mut b);
+
+  let propose_add_c = external_sender.propose_add(1, &c.create_key_package().unwrap());
+  let first_commit = prepare_commit(&mut a, &propose_add_c, &[USER_A, USER_B, USER_C]);
+
+  // a second commit for the same epoch replaces a's pending commit
+  let propose_add_d = external_sender.propose_add(1, &d.create_key_package().unwrap());
+  let second_commit = prepare_commit(&mut a, &propose_add_d, &[USER_A, USER_B, USER_C, USER_D]);
+  assert_ne!(first_commit, second_commit);
+
+  b.process_proposals(
+    ProposalsOperationType::APPEND,
+    &propose_add_c,
+    Some(&[USER_A, USER_B, USER_C]),
+  )
+  .unwrap()
+  .expect("a commit should be produced");
+  b.process_commit(&first_commit).unwrap();
+  let user_ids_b: HashSet<u64> = b.get_user_ids().unwrap().into_iter().collect();
+  assert_eq!(user_ids_b, HashSet::from([USER_A, USER_B, USER_C]));
+
+  // a's pending commit has the group, epoch and leaf index the first commit would produce, but
+  // it is the result of the second commit
+  // libdave: "Handle own commits with caching"
+  assert!(matches!(
+    a.process_commit(&first_commit),
+    Err(ProcessCommitError::OwnCommitMismatch)
+  ));
+}
+
+/// libdave: [`MlsSessionTests.SessionOwnLatestPreparedCommitUsesCachedState`](https://github.com/discord/libdave/blob/6396c90a/cpp/test/mls_session_tests.cpp#L258)
+#[test]
+fn own_latest_prepared_commit_uses_cached_state() {
+  let external_sender = TestExternalSender::new(TEST_GROUP_ID);
+  let mut a = init_and_set_external_sender(USER_A, &external_sender, TEST_GROUP_ID);
+  let mut b = init_and_set_external_sender(USER_B, &external_sender, TEST_GROUP_ID);
+  let mut c = init_and_set_external_sender(USER_C, &external_sender, TEST_GROUP_ID);
+  let mut d = init_and_set_external_sender(USER_D, &external_sender, TEST_GROUP_ID);
+
+  establish_group(&external_sender, &mut a, &mut b);
+
+  let propose_add_c = external_sender.propose_add(1, &c.create_key_package().unwrap());
+  prepare_commit(&mut a, &propose_add_c, &[USER_A, USER_B, USER_C]);
+
+  let propose_add_d = external_sender.propose_add(1, &d.create_key_package().unwrap());
+  let second_commit = prepare_commit(&mut a, &propose_add_d, &[USER_A, USER_B, USER_C, USER_D]);
+
+  b.process_proposals(
+    ProposalsOperationType::APPEND,
+    &propose_add_c,
+    Some(&[USER_A, USER_B, USER_C]),
+  )
+  .unwrap()
+  .expect("a commit should be produced");
+  b.process_proposals(
+    ProposalsOperationType::APPEND,
+    &propose_add_d,
+    Some(&[USER_A, USER_B, USER_C, USER_D]),
+  )
+  .unwrap()
+  .expect("a commit should be produced");
+  b.process_commit(&second_commit).unwrap();
+  let user_ids_b: HashSet<u64> = b.get_user_ids().unwrap().into_iter().collect();
+  assert_eq!(user_ids_b, HashSet::from([USER_A, USER_B, USER_C, USER_D]));
+
+  a.process_commit(&second_commit).unwrap();
+  let user_ids_a: HashSet<u64> = a.get_user_ids().unwrap().into_iter().collect();
+  assert_eq!(user_ids_a, user_ids_b);
+
+  let authenticator_a = a.get_epoch_authenticator().unwrap().as_slice();
+  assert!(!authenticator_a.is_empty());
+  assert_eq!(
+    authenticator_a,
+    b.get_epoch_authenticator().unwrap().as_slice()
+  );
 }
 
 /// libdave: [`MlsSessionTests.SessionCommitWithoutQueuedProposalsFails`](https://github.com/discord/libdave/blob/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169/cpp/test/mls_session_tests.cpp#L183)
@@ -212,7 +333,10 @@ fn commit_without_queued_proposals_fails() {
   // a is in an established group with no queued proposals; a replayed commit
   // is a hard failure that should request a reset, not a silent ignore
   // libdave: "ProcessCommit called without queued proposals"
-  assert!(a.process_commit(&commit_welcome.commit).is_err());
+  assert!(matches!(
+    a.process_commit(&commit_welcome.commit),
+    Err(ProcessCommitError::NoQueuedProposals)
+  ));
 }
 
 /// libdave: [`MlsSessionTests.SessionCommitWithoutAnyStateIsIgnored`](https://github.com/discord/libdave/blob/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169/cpp/test/mls_session_tests.cpp#L204)

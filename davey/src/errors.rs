@@ -168,12 +168,24 @@ pub enum ProcessCommitError {
   NoGroup,
   #[error("cannot process commit for a pending group")]
   PendingGroup,
+  #[error("cannot process commit without queued proposals")]
+  NoQueuedProposals,
   #[error("failed to deserialize message: {0}")]
   DeserializeMessage(tls_codec::Error),
   #[error("message was not a private or public message: {0}")]
   MessageNotPrivateOrPublic(#[from] ProtocolMessageError),
+  #[error("received commit before welcome")]
+  CommitBeforeWelcome,
   #[error("message was for a different group")]
   MessageForDifferentGroup,
+  #[error("commit was not a public message")]
+  UnexpectedWireFormat,
+  #[error("commit was not for the current epoch")]
+  EpochMismatch,
+  #[error("message was not a commit")]
+  UnexpectedContentType,
+  #[error("commit was not sent by a member")]
+  UnexpectedSenderType,
   #[error("failed to merge pending commit: {0}")]
   MergingPendingCommitFailed(#[from] MergePendingCommitError<MemoryStorageError>),
   #[error("failed to merge staged commit: {0}")]
@@ -186,8 +198,8 @@ pub enum ProcessCommitError {
   NoPendingCommit,
   #[error("received own commit that does not match the pending commit")]
   OwnCommitMismatch,
-  #[error("commit did not advance the epoch")]
-  EpochDidNotAdvance,
+  #[error("commit contains a non-ref proposal")]
+  UnexpectedNonRefProposal,
   #[error("invalid commit roster: {0}")]
   InvalidRoster(#[from] RosterError),
   #[error("failed to update ratchets: {0}")]
