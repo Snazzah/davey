@@ -108,6 +108,16 @@ pub enum ProcessProposalsError {
   DeserializeMessageFailed(tls_codec::Error),
   #[error("message was not a private or public message: {0}")]
   MessageNotPrivateOrPublic(#[from] ProtocolMessageError),
+  #[error("proposal was not a public message")]
+  UnexpectedWireFormat,
+  #[error("proposal was not for the current epoch")]
+  EpochMismatch,
+  #[error("message was not a proposal")]
+  UnexpectedContentType,
+  #[error("proposal was not sent by an external sender")]
+  UnexpectedSenderType,
+  #[error("proposal was not an add or remove proposal")]
+  UnexpectedProposalType,
   #[error("failed to process message: {0}")]
   MessageProcessingFailed(#[from] ProcessMessageError<MemoryStorageError>),
   #[error("failed to convert credential content to user id: {0}")]

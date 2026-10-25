@@ -420,10 +420,30 @@ impl DaveSession {
           .try_into_protocol_message()
           .map_err(ProcessProposalsError::MessageNotPrivateOrPublic)?;
 
+        let ProtocolMessage::PublicMessage(public_message) = &protocol_message else {
+          return Err(ProcessProposalsError::UnexpectedWireFormat);
+        };
+
+        if public_message.epoch() != group.epoch() {
+          return Err(ProcessProposalsError::EpochMismatch);
+        }
+
+        if public_message.content_type() != ContentType::Proposal {
+          return Err(ProcessProposalsError::UnexpectedContentType);
+        }
+
+        if !matches!(public_message.sender(), Sender::External(_)) {
+          return Err(ProcessProposalsError::UnexpectedSenderType);
+        }
+
         let processed_message = group.process_message(&self.provider, protocol_message)?;
 
         match processed_message.into_content() {
           ProcessedMessageContent::ProposalMessage(proposal) => {
+            if !matches!(proposal.proposal(), Proposal::Add(_) | Proposal::Remove(_)) {
+              return Err(ProcessProposalsError::UnexpectedProposalType);
+            }
+
             if let Proposal::Add(add_proposal) = proposal.proposal() {
               let incoming_user_id = u64::from_be_bytes(
                 add_proposal
@@ -461,12 +481,6 @@ impl DaveSession {
               };
               debug!(
                 "Storing remove proposal for user {outgoing_user_id} (leaf index: {leaf_index})",
-              );
-            }
-
-            if proposal.proposal_or_ref_type() == ProposalOrRefType::Proposal {
-              warn!(
-                "This next proposal isn't a reference, so our commit is probably going to be rejected",
               );
             }
 
@@ -559,7 +573,10 @@ impl DaveSession {
     welcome: &[u8],
     recognized_user_ids: Option<&[u64]>,
   ) -> Result<(), ProcessWelcomeError> {
-    if self.group.is_some() && self.status == SessionStatus::ACTIVE {
+    // Our pending group is the only group at epoch 0, so any other group is already established
+    if let Some(group) = &self.group
+      && group.epoch().as_u64() != 0
+    {
       return Err(ProcessWelcomeError::AlreadyInGroup);
     }
 
@@ -581,7 +598,6 @@ impl DaveSession {
         .replace_old_group()
         .build()?;
 
-    // See https://github.com/discord/libdave/blob/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169/cpp/src/mls/session.cpp#L540
     if staged_join.group_context().group_id() != &self.group_id {
       return Err(ProcessWelcomeError::UnexpectedGroupId);
     }
@@ -599,7 +615,6 @@ impl DaveSession {
       return Err(ProcessWelcomeError::UnexpectedExternalSender);
     }
 
-    // See https://github.com/discord/libdave/blob/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169/cpp/src/mls/session.cpp#L486-L499
     validate_roster(staged_join.members().map(|member| member.credential))?;
 
     if let Some(ids) = recognized_user_ids {
