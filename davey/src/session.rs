@@ -407,7 +407,6 @@ impl DaveSession {
     let proposals: Vec<u8> = VLBytes::tls_deserialize_exact_bytes(proposals)
       .map_err(ProcessProposalsError::DeserializeProposalFailed)?
       .into();
-    let mut commit_adds_members = false;
 
     if operation_type == ProposalsOperationType::APPEND {
       let mut remaining_bytes: &[u8] = &proposals;
@@ -462,8 +461,6 @@ impl DaveSession {
               {
                 return Err(ProcessProposalsError::UnexpectedUser(incoming_user_id));
               }
-
-              commit_adds_members = true;
             } else if let Proposal::Remove(remove_proposal) = proposal.proposal() {
               let leaf_index = remove_proposal.removed();
               let member = group.member(leaf_index);
@@ -545,22 +542,15 @@ impl DaveSession {
       .expect("failed to serialize commit");
     self.pending_commit_bytes = Some(commit.clone());
 
-    let welcome = if commit_adds_members {
-      let Some(mls_message_out) = welcome else {
-        panic!("welcome was not returned when there are new members")
-      };
+    let welcome = welcome.map(|mls_message_out| {
       let MlsMessageBodyOut::Welcome(welcome) = mls_message_out.body() else {
-        panic!("message was not a welcome")
+        unreachable!("commit returned a non-welcome message as the welcome")
       };
 
-      Some(
-        welcome
-          .tls_serialize_detached()
-          .expect("failed to serialize welcome"),
-      )
-    } else {
-      None
-    };
+      welcome
+        .tls_serialize_detached()
+        .expect("failed to serialize welcome")
+    });
 
     Ok(Some(CommitWelcome { commit, welcome }))
   }
