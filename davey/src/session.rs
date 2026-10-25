@@ -877,9 +877,9 @@ impl DaveSession {
       return Err(EncryptError::NotReady);
     }
 
-    // Return the packet back to the client (passthrough) if the packet is a silence packet
+    // Return the packet back to the client (passthrough) if the packet is an opus silence packet
     // This may change in the future, see: https://daveprotocol.com/#silence-packets
-    if packet == OPUS_SILENCE_PACKET {
+    if codec == Codec::OPUS && packet == OPUS_SILENCE_PACKET {
       return Ok(Cow::Borrowed(packet));
     }
 
@@ -901,9 +901,9 @@ impl DaveSession {
       return Err(EncryptError::NotReady);
     }
 
-    // Return the packet back to the client (passthrough) if the packet is a silence packet
+    // Return the packet back to the client (passthrough) if the packet is an opus silence packet
     // This may change in the future, see: https://daveprotocol.com/#silence-packets
-    if packet == OPUS_SILENCE_PACKET {
+    if codec == Codec::OPUS && packet == OPUS_SILENCE_PACKET {
       encrypted_packet.clear();
       encrypted_packet.extend_from_slice(packet);
       return Ok(());
