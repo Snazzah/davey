@@ -5,7 +5,7 @@ use tracing::warn;
 use super::{
   Codec,
   frame_processors::OutboundFrameProcessor,
-  leb128::{leb128_size, read_leb128, write_leb128, LEB128_MAX_SIZE},
+  leb128::{LEB128_MAX_SIZE, leb128_size, read_leb128, write_leb128},
 };
 
 const NALU_SHORT_START_SEQUENCE_SIZE: usize = 3;
