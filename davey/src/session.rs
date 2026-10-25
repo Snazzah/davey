@@ -10,7 +10,12 @@ use openmls_basic_credential::SignatureKeyPair;
 use openmls_rust_crypto::OpenMlsRustCrypto;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
-use std::{borrow::Cow, collections::HashMap, fmt::Debug, num::NonZeroU16};
+use std::{
+  borrow::Cow,
+  collections::{HashMap, HashSet},
+  fmt::Debug,
+  num::NonZeroU16,
+};
 use tracing::{debug, trace, warn};
 
 use crate::{
@@ -504,6 +509,8 @@ impl DaveSession {
       return Ok(None);
     }
 
+    validate_projected_roster(group, group.pending_proposals(), None)?;
+
     // libdave seems to overwrite pendingGroupCommit_ and then not use it anywhere else...
     if group.pending_commit().is_some() {
       warn!("A pending commit was already created! Removing...");
@@ -592,6 +599,9 @@ impl DaveSession {
       return Err(ProcessWelcomeError::UnexpectedExternalSender);
     }
 
+    // See https://github.com/discord/libdave/blob/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169/cpp/src/mls/session.cpp#L486-L499
+    validate_roster(staged_join.members().map(|member| member.credential))?;
+
     if let Some(ids) = recognized_user_ids {
       for member in staged_join.members() {
         let user_id = u64::from_be_bytes(
@@ -656,17 +666,28 @@ impl DaveSession {
     let epoch_before = group.epoch().as_u64();
 
     match group.process_message(&self.provider, protocol_message) {
-      Ok(message) => match message.into_content() {
-        ProcessedMessageContent::StagedCommitMessage(staged_commit) => {
-          group.merge_staged_commit(&self.provider, *staged_commit)?;
+      Ok(message) => {
+        let committer = match message.sender() {
+          Sender::Member(index) => Some(*index),
+          _ => None,
+        };
+        match message.into_content() {
+          ProcessedMessageContent::StagedCommitMessage(staged_commit) => {
+            validate_staged_commit_roster(group, &staged_commit, committer)?;
+            group.merge_staged_commit(&self.provider, *staged_commit)?;
+          }
+          _ => return Err(ProcessCommitError::ProcessedMessageNotStagedCommit),
         }
-        _ => return Err(ProcessCommitError::ProcessedMessageNotStagedCommit),
-      },
+      }
       Err(ProcessMessageError::InvalidCommit(StageCommitError::OwnCommit)) => {
         // This is our own commit, so merge our pending commit instead.
         match &self.pending_commit_bytes {
           Some(expected) if expected.as_slice() == commit => {
             debug!("Found own commit, merging pending commit instead.");
+            let Some(staged_commit) = group.pending_commit() else {
+              return Err(ProcessCommitError::NoPendingCommit);
+            };
+            validate_staged_commit_roster(group, staged_commit, Some(group.own_leaf_index()))?;
             group.merge_pending_commit(&self.provider)?;
           }
           Some(_) => return Err(ProcessCommitError::OwnCommitMismatch),
@@ -990,6 +1011,73 @@ impl DaveSession {
         .transition_to_passthrough_mode(passthrough_mode, transition_expiry.unwrap_or(10) as usize);
     }
   }
+}
+
+/// Validates all credentials are basic and non-repeating
+/// See https://github.com/discord/libdave/blob/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169/cpp/src/mls/session.cpp#L486-L499
+fn validate_roster(roster: impl IntoIterator<Item = Credential>) -> Result<(), RosterError> {
+  let mut user_ids = HashSet::new();
+  for credential in roster {
+    if credential.credential_type() != CredentialType::Basic {
+      return Err(RosterError::UnexpectedCredentialType);
+    }
+    let user_id = u64::from_be_bytes(
+      credential
+        .serialized_content()
+        .try_into()
+        .map_err(RosterError::CredentialContentConvertFailed)?,
+    );
+    if !user_ids.insert(user_id) {
+      return Err(RosterError::DuplicateUser(user_id));
+    }
+  }
+  Ok(())
+}
+
+/// Validates the roster that results from applying proposals
+fn validate_projected_roster<'a>(
+  group: &MlsGroup,
+  proposals: impl Iterator<Item = &'a QueuedProposal>,
+  update_path: Option<(LeafNodeIndex, &LeafNode)>,
+) -> Result<(), RosterError> {
+  let mut roster: HashMap<LeafNodeIndex, Credential> = group
+    .members()
+    .map(|member| (member.index, member.credential))
+    .collect();
+  let mut added = Vec::new();
+
+  for queued_proposal in proposals {
+    match queued_proposal.proposal() {
+      Proposal::Add(add_proposal) => {
+        added.push(add_proposal.key_package().leaf_node().credential().clone());
+      }
+      Proposal::Remove(remove_proposal) => {
+        roster.remove(&remove_proposal.removed());
+      }
+      Proposal::Update(update_proposal) => {
+        if let Sender::Member(index) = queued_proposal.sender() {
+          roster.insert(*index, update_proposal.leaf_node().credential().clone());
+        }
+      }
+      _ => {}
+    }
+  }
+
+  if let Some((committer, leaf_node)) = update_path {
+    roster.insert(committer, leaf_node.credential().clone());
+  }
+
+  validate_roster(roster.into_values().chain(added))
+}
+
+/// Validates the roster that results from merging a staged commit
+fn validate_staged_commit_roster(
+  group: &MlsGroup,
+  staged_commit: &StagedCommit,
+  committer: Option<LeafNodeIndex>,
+) -> Result<(), RosterError> {
+  let update_path = committer.zip(staged_commit.update_path_leaf_node());
+  validate_projected_roster(group, staged_commit.queued_proposals(), update_path)
 }
 
 impl Debug for DaveSession {

@@ -114,6 +114,8 @@ pub enum ProcessProposalsError {
   CredentialContentConvertFailed(TryFromSliceError),
   #[error("unexpected user in add proposal: {0}")]
   UnexpectedUser(u64),
+  #[error("invalid proposed roster: {0}")]
+  InvalidRoster(#[from] RosterError),
   #[error("failed to store pending proposal: {0}")]
   StorePendingProposalFailed(MemoryStorageError),
   #[error("processed message was not a proposal")]
@@ -151,6 +153,8 @@ pub enum ProcessWelcomeError {
   CredentialContentConvertFailed(TryFromSliceError),
   #[error("unrecognized user in welcome roster: {0}")]
   UnrecognizedUser(u64),
+  #[error("invalid welcome roster: {0}")]
+  InvalidRoster(#[from] RosterError),
   #[error("failed to delete pending group: {0}")]
   DeletingPendingGroupFailed(MemoryStorageError),
   #[error("failed to update ratchets: {0}")]
@@ -184,8 +188,21 @@ pub enum ProcessCommitError {
   OwnCommitMismatch,
   #[error("commit did not advance the epoch")]
   EpochDidNotAdvance,
+  #[error("invalid commit roster: {0}")]
+  InvalidRoster(#[from] RosterError),
   #[error("failed to update ratchets: {0}")]
   UpdatingRatchetsFailed(#[from] UpdateRatchetsError),
+}
+
+#[derive(Error, Debug)]
+#[non_exhaustive]
+pub enum RosterError {
+  #[error("unexpected credential type")]
+  UnexpectedCredentialType,
+  #[error("failed to convert credential content to user id: {0}")]
+  CredentialContentConvertFailed(TryFromSliceError),
+  #[error("duplicate user: {0}")]
+  DuplicateUser(u64),
 }
 
 #[derive(Error, Debug)]
