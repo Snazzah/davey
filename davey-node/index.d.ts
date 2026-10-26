@@ -73,6 +73,8 @@ export declare class DAVESession {
   get status(): SessionStatus
   /** Whether the session is ready to encrypt/decrypt. */
   get ready(): boolean
+  /** Whether the session has a key to encrypt with. */
+  get canEncrypt(): boolean
   /** Get the epoch authenticator of this session's group. */
   getEpochAuthenticator(): Buffer | null
   /**
@@ -105,7 +107,7 @@ export declare class DAVESession {
    */
   processProposals(operationType: ProposalsOperationType, proposals: Buffer, recognizedUserIds?: Array<string> | undefined | null): ProposalsResult
   /**
-   * Process a welcome message.
+   * Process a welcome message. Afterwards, prepare the transition with {@link prepareTransition} to start using the new keys.
    * @param welcome The welcome message to process.
    * @param recognizedUserIds The recognized set of user IDs gathered from the voice gateway. Recommended to set so that the users in the welcomed group are checked against.
    * @throws Will throw an error if the welcome is invalid. Send an [opcode 31: dave_mls_invalid_commit_welcome](https://daveprotocol.com/#dave_mls_invalid_commit_welcome-31) if this occurs.
@@ -113,12 +115,26 @@ export declare class DAVESession {
    */
   processWelcome(welcome: Buffer, recognizedUserIds?: Array<string> | undefined | null): void
   /**
-   * Process a commit.
+   * Process a commit. Afterwards, prepare the transition with {@link prepareTransition} to start using the new keys.
    * @param commit The commit to process.
    * @throws Will throw an error if the commit is invalid. Send an [opcode 31: dave_mls_invalid_commit_welcome](https://daveprotocol.com/#dave_mls_invalid_commit_welcome-31) if this occurs.
    * @see https://daveprotocol.com/#dave_mls_announce_commit_transition-29
    */
   processCommit(commit: Buffer): void
+  /**
+   * Prepare for a transition. This should be called after successfully processing a commit or welcome.
+   * @param transitionId The transition ID.
+   * @param protocolVersion The protocol version being transitioned to.
+   * @see https://daveprotocol.com/#dave_protocol_prepare_transition-21
+   */
+  prepareTransition(transitionId: number, protocolVersion: number): void
+  /**
+   * Execute a prepared transition, switching the encryption key.
+   * @param transitionId The transition ID.
+   * @returns Whether a prepared transition was executed.
+   * @see https://daveprotocol.com/#dave_protocol_execute_transition-22
+   */
+  executeTransition(transitionId: number): boolean
   /**
    * Get the verification code of another member of the group.
    * This is the equivalent of `generateDisplayableCode(getPairwiseFingerprint(0, userId), 45, 5)`.

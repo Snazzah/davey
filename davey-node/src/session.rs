@@ -210,6 +210,12 @@ impl DaveSession {
     self.inner.is_ready()
   }
 
+  /// Whether the session has a key to encrypt with.
+  #[napi(getter)]
+  pub fn can_encrypt(&self) -> bool {
+    self.inner.can_encrypt()
+  }
+
   /// Get the epoch authenticator of this session's group.
   #[napi]
   pub fn get_epoch_authenticator(&self) -> Option<Buffer> {
@@ -306,7 +312,7 @@ impl DaveSession {
     )
   }
 
-  /// Process a welcome message.
+  /// Process a welcome message. Afterwards, prepare the transition with {@link prepareTransition} to start using the new keys.
   /// @param welcome The welcome message to process.
   /// @param recognizedUserIds The recognized set of user IDs gathered from the voice gateway. Recommended to set so that the users in the welcomed group are checked against.
   /// @throws Will throw an error if the welcome is invalid. Send an [opcode 31: dave_mls_invalid_commit_welcome](https://daveprotocol.com/#dave_mls_invalid_commit_welcome-31) if this occurs.
@@ -337,7 +343,7 @@ impl DaveSession {
     Ok(())
   }
 
-  /// Process a commit.
+  /// Process a commit. Afterwards, prepare the transition with {@link prepareTransition} to start using the new keys.
   /// @param commit The commit to process.
   /// @throws Will throw an error if the commit is invalid. Send an [opcode 31: dave_mls_invalid_commit_welcome](https://daveprotocol.com/#dave_mls_invalid_commit_welcome-31) if this occurs.
   /// @see https://daveprotocol.com/#dave_mls_announce_commit_transition-29
@@ -349,6 +355,36 @@ impl DaveSession {
       .map_err(|err| napi_error!("Failed to process commit: {err:?}"))?;
 
     Ok(())
+  }
+
+  /// Prepare for a transition. This should be called after successfully processing a commit or welcome.
+  /// @param transitionId The transition ID.
+  /// @param protocolVersion The protocol version being transitioned to.
+  /// @see https://daveprotocol.com/#dave_protocol_prepare_transition-21
+  #[napi]
+  pub fn prepare_transition(
+    &mut self,
+    transition_id: u16,
+    protocol_version: u16,
+  ) -> napi::Result<()> {
+    self
+      .inner
+      .prepare_transition(transition_id, protocol_version)
+      .map_err(|err| napi_error!("Failed to prepare transition: {err:?}"))?;
+
+    Ok(())
+  }
+
+  /// Execute a prepared transition, switching the encryption key.
+  /// @param transitionId The transition ID.
+  /// @returns Whether a prepared transition was executed.
+  /// @see https://daveprotocol.com/#dave_protocol_execute_transition-22
+  #[napi]
+  pub fn execute_transition(&mut self, transition_id: u16) -> napi::Result<bool> {
+    self
+      .inner
+      .execute_transition(transition_id)
+      .map_err(|err| napi_error!("Failed to execute transition: {err:?}"))
   }
 
   /// Get the verification code of another member of the group.

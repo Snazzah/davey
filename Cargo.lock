@@ -294,7 +294,7 @@ dependencies = [
 
 [[package]]
 name = "davey-python"
-version = "0.1.7"
+version = "0.2.0-beta"
 dependencies = [
  "davey",
  "pyo3",

@@ -222,6 +222,13 @@ impl Decryptor {
       .push_back(CipherManager::new(self.clock.clone(), ratchet));
   }
 
+  /// Equivalent to `TransitionToKeyRatchet(nullptr)`.
+  pub fn expire_key_ratchets(&mut self) {
+    trace!("Expiring key ratchets");
+    self.cleanup_expired_cryptor_managers();
+    self.update_cryptor_manager_expiry(RATCHET_EXPIRY);
+  }
+
   pub fn transition_to_passthrough_mode(&mut self, mode: bool, transition_expiry: usize) {
     if mode {
       self.allow_passthrough_until = None;

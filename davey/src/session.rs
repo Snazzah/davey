@@ -120,6 +120,9 @@ pub struct DaveSession {
   privacy_code: String,
   encryptor: Encryptor,
   decryptors: HashMap<u64, Decryptor>,
+  /// Pending transition IDs mapped to their protocol version
+  pending_transitions: HashMap<u16, u16>,
+  passthrough_mode: bool,
 }
 
 impl DaveSession {
@@ -148,10 +151,13 @@ impl DaveSession {
       privacy_code: String::new(),
       encryptor: Encryptor::new(),
       decryptors: HashMap::new(),
+      pending_transitions: HashMap::new(),
+      passthrough_mode: false,
     })
   }
 
   /// Resets and re-initializes the session.
+  /// Encryption and decryption keys are kept until the next transition.
   pub fn reinit(
     &mut self,
     protocol_version: NonZeroU16,
@@ -159,6 +165,7 @@ impl DaveSession {
     channel_id: u64,
     key_pair: Option<&SigningKeyPair>,
   ) -> Result<(), ReinitError> {
+    let same_identity = user_id == self.user_id() && channel_id == self.channel_id();
     self.reset()?;
 
     let (ciphersuite, group_id, signer, credential_with_key) =
@@ -170,9 +177,12 @@ impl DaveSession {
     self.signer = signer;
     self.credential_with_key = credential_with_key;
     self.privacy_code.clear();
-    self.encryptor = Encryptor::new();
-    self.decryptors.clear();
-    self.is_ready = false;
+    if !same_identity {
+      self.encryptor = Encryptor::new();
+      self.decryptors.clear();
+      self.passthrough_mode = false;
+      self.is_ready = false;
+    }
 
     if self.external_sender.is_some() {
       self.create_pending_group()?;
@@ -208,6 +218,7 @@ impl DaveSession {
   }
 
   /// Resets the session by deleting the group and clearing the storage.
+  /// Encryption and decryption keys are kept.
   /// If you want to re-initialize the session, use [Self::reinit].
   pub fn reset(&mut self) -> Result<(), ResetError> {
     debug!("Resetting MLS session");
@@ -221,6 +232,7 @@ impl DaveSession {
     self.provider.storage().values.write().unwrap().clear();
 
     self.pending_commit_bytes = None;
+    self.pending_transitions.clear();
     self.status = SessionStatus::INACTIVE;
 
     Ok(())
@@ -282,6 +294,11 @@ impl DaveSession {
   /// Whether this session is ready to encrypt/decrypt frames.
   pub fn is_ready(&self) -> bool {
     self.is_ready
+  }
+
+  /// Whether this session has a key to encrypt frames with.
+  pub fn can_encrypt(&self) -> bool {
+    self.is_ready && self.encryptor.has_key_ratchet()
   }
 
   /// Get the epoch authenticator of this session's group.
@@ -557,6 +574,7 @@ impl DaveSession {
 
   /// Process a welcome message from [dave_mls_welcome (30)](https://daveprotocol.com/#dave_mls_welcome-30).
   /// If the user wants to validate that all users in the welcomed group are expected to be in the group, pass them in `recognized_user_ids`.
+  /// Afterwards, prepare the transition with [Self::prepare_transition] to start using the new keys.
   /// Send a [dave_mls_invalid_commit_welcome (31)](https://daveprotocol.com/#dave_mls_invalid_commit_welcome-31) if the welcome couldn't be processed.
   pub fn process_welcome(
     &mut self,
@@ -639,13 +657,13 @@ impl DaveSession {
     self.group = Some(group);
     self.pending_commit_bytes = None;
     self.status = SessionStatus::ACTIVE;
-    self.update_ratchets()?;
 
     Ok(())
   }
 
   /// Process a commit from [dave_mls_announce_commit_transition (29)](https://daveprotocol.com/#dave_mls_announce_commit_transition-29).
-  /// Send a [dave_mls_invalid_commit_welcome (29)](https://daveprotocol.com/#dave_mls_announce_commit_transition-29) if the commit couldn't be processed.
+  /// Afterwards, prepare the transition with [Self::prepare_transition] to start using the new keys.
+  /// Send a [dave_mls_invalid_commit_welcome (31)](https://daveprotocol.com/#dave_mls_invalid_commit_welcome-31) if the commit couldn't be processed.
   pub fn process_commit(&mut self, commit: &[u8]) -> Result<(), ProcessCommitError> {
     let Some(group) = &mut self.group else {
       return Err(ProcessCommitError::NoGroup);
@@ -726,9 +744,74 @@ impl DaveSession {
       group.epoch().as_u64()
     );
     self.status = SessionStatus::ACTIVE;
-    self.update_ratchets()?;
 
     Ok(())
+  }
+
+  /// Prepare for a transition from [dave_protocol_prepare_transition (21)](https://daveprotocol.com/#dave_protocol_prepare_transition-21).
+  /// This should be called after successfully processing a commit or welcome.
+  pub fn prepare_transition(
+    &mut self,
+    transition_id: u16,
+    protocol_version: u16,
+  ) -> Result<(), TransitionError> {
+    debug!("Preparing transition {transition_id} to protocol version {protocol_version}");
+
+    if protocol_version == 0 {
+      for decryptor in self.decryptors.values_mut() {
+        decryptor.expire_key_ratchets();
+      }
+    } else if self.has_established_group() {
+      self.update_ratchets()?;
+    }
+
+    if transition_id == 0 {
+      self.apply_transition(protocol_version)?;
+    } else {
+      self
+        .pending_transitions
+        .insert(transition_id, protocol_version);
+    }
+
+    Ok(())
+  }
+
+  /// Execute a transition from [dave_protocol_execute_transition (22)](https://daveprotocol.com/#dave_protocol_execute_transition-22), switching the encryption key.
+  /// Returns whether a prepared transition was executed.
+  pub fn execute_transition(&mut self, transition_id: u16) -> Result<bool, TransitionError> {
+    let Some(protocol_version) = self.pending_transitions.remove(&transition_id) else {
+      debug!("No prepared transition to execute for {transition_id}");
+      return Ok(false);
+    };
+
+    debug!("Executing transition {transition_id} to protocol version {protocol_version}");
+    self.apply_transition(protocol_version)?;
+
+    Ok(true)
+  }
+
+  fn apply_transition(&mut self, protocol_version: u16) -> Result<(), TransitionError> {
+    if protocol_version == 0 {
+      self.reset()?;
+      self.encryptor.clear_key_ratchet();
+      self.privacy_code.clear();
+    } else if self.has_established_group() {
+      let ratchet = self.get_key_ratchet(self.user_id())?;
+      self.encryptor.set_key_ratchet(ratchet);
+    } else {
+      // Reinitialized with no group yet, so there is no key to encrypt with
+      self.encryptor.clear_key_ratchet();
+    }
+
+    Ok(())
+  }
+
+  /// Whether the session has a group past epoch 0, which is only for the pending group.
+  fn has_established_group(&self) -> bool {
+    self
+      .group
+      .as_ref()
+      .is_some_and(|group| group.epoch().as_u64() != 0)
   }
 
   /// Get the verification code of another member of the group.
@@ -818,9 +901,14 @@ impl DaveSession {
       }
 
       let ratchet = self.get_key_ratchet(uid)?;
+      let passthrough_mode = self.passthrough_mode;
       let decryptor = self.decryptors.entry(uid).or_insert_with(|| {
         debug!("Creating decryptor for user {uid:?}");
-        Decryptor::new()
+        let mut decryptor = Decryptor::new();
+        if passthrough_mode {
+          decryptor.transition_to_passthrough_mode(true, 0);
+        }
+        decryptor
       });
       decryptor.transition_to_key_ratchet(ratchet);
     }
@@ -841,12 +929,6 @@ impl DaveSession {
     self
       .decryptors
       .retain(|&uid, _| current_members.contains(&uid));
-
-    // Update encryptor
-    let user_id = self.user_id();
-    self
-      .encryptor
-      .set_key_ratchet(self.get_key_ratchet(user_id)?);
 
     // Update privacy code
     let old_code = self.privacy_code.clone();
@@ -924,6 +1006,10 @@ impl DaveSession {
       encrypted_packet.clear();
       encrypted_packet.extend_from_slice(packet);
       return Ok(());
+    }
+
+    if !self.encryptor.has_key_ratchet() {
+      return Err(EncryptError::NotReady);
     }
 
     if !self
@@ -1022,7 +1108,9 @@ impl DaveSession {
   }
 
   /// Set whether passthrough mode is enabled on all decryptors. The transition expiry (in seconds) when disabling passthrough mode defaults to 10 seconds
+  /// Enabling passthrough mode allows unencrypted frames until it is disabled, and also applies to decryptors created afterwards.
   pub fn set_passthrough_mode(&mut self, passthrough_mode: bool, transition_expiry: Option<u32>) {
+    self.passthrough_mode = passthrough_mode;
     for decryptor in self.decryptors.values_mut() {
       decryptor
         .transition_to_passthrough_mode(passthrough_mode, transition_expiry.unwrap_or(10) as usize);

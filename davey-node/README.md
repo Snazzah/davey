@@ -25,24 +25,31 @@ session.getSerializedKeyPackage();
 session.processProposals(
   ProposalsOperationType.APPEND, // the type of proposals operation
   proposalsBuffer, // proposals or proposal refs buffer
-  recognizedUserIds, // an array of user IDs in the session, optional but recommended
+  recognizedUserIds, // an array of user IDs in the session, optional but highly recommended
 );
 
-// Process a commit
+// Process a commit, then prepare its transition
 session.processCommit(commitBuffer);
+session.prepareTransition(transitionId, session.protocolVersion);
 
-// Process a welcome
-session.processWelcome(welcomeBuffer);
+// Process a welcome, then prepare its transition
+session.processWelcome(welcomeBuffer, recognizedUserIds);
+session.prepareTransition(transitionId, session.protocolVersion);
+
+// Execute a transition, updating the encryption key
+session.executeTransition(transitionId);
 
 // The current voice privacy code of the session, updated after a commit/welcome
 session.voicePrivacyCode; // a 30 digit string or an empty string for not started sessions
 
 // Encrypt/decrypt voice packets
 if (session.ready) {
-  // Encrypt packets with a specified media type and codec, use this before transport encryption
-  session.encrypt(MediaType.AUDIO, Codec.OPUS, packet);
-  // Really only opus is supported right now so just use the shorthand method
-  session.encryptOpus(packet);
+  if (session.canEncrypt) {
+    // Encrypt packets with a specified media type and codec, use this before transport encryption
+    session.encrypt(MediaType.AUDIO, Codec.OPUS, packet);
+    // Really only opus is supported right now so just use the shorthand method
+    session.encryptOpus(packet);
+  }
   // Decrypt a packet from a user, use this after transport decryption
   session.decrypt(userId, MediaType.AUDIO, incomingPacket);
 }

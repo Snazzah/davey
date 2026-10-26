@@ -182,6 +182,8 @@ class DaveSession:
     """The current status of the session."""
     ready: bool
     """Whether the session is ready to encrypt/decrypt."""
+    can_encrypt: bool
+    """Whether the session has a key to encrypt with."""
     voice_privacy_code: Optional[str]
     """
     Get the voice privacy code of this session's group.
@@ -250,7 +252,7 @@ class DaveSession:
         recognized_user_ids: Optional[List[int]] = None,
     ) -> None:
         """
-        Process a welcome message.
+        Process a welcome message. Afterwards, prepare the transition with `prepare_transition` to start using the new keys.
         See the [DAVE Protocol Whitepaper on opcode 30](https://daveprotocol.com/#dave_mls_welcome-30) for technical details.
 
         :param welcome: The welcome message to process.
@@ -259,10 +261,28 @@ class DaveSession:
         ...
     def process_commit(self, commit: bytes) -> None:
         """
-        Process a commit.
+        Process a commit. Afterwards, prepare the transition with `prepare_transition` to start using the new keys.
         See the [DAVE Protocol Whitepaper on opcode 29](https://daveprotocol.com/#dave_mls_announce_commit_transition-29) for technical details.
 
         :param commit: The commit to process.
+        """
+        ...
+    def prepare_transition(self, transition_id: int, protocol_version: int) -> None:
+        """
+        Prepare for a transition. This should be called after successfully processing a commit or welcome.
+        See the [DAVE Protocol Whitepaper on opcode 21](https://daveprotocol.com/#dave_protocol_prepare_transition-21) for technical details.
+
+        :param transition_id: The transition ID.
+        :param protocol_version: The protocol version being transitioned to.
+        """
+        ...
+    def execute_transition(self, transition_id: int) -> bool:
+        """
+        Execute a prepared transition, switching the encryption key.
+        See the [DAVE Protocol Whitepaper on opcode 22](https://daveprotocol.com/#dave_protocol_execute_transition-22) for technical details.
+
+        :param transition_id: The transition ID.
+        :returns: Whether a prepared transition was executed.
         """
         ...
     def get_verification_code(self, user_id: int) -> str:

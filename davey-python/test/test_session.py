@@ -79,6 +79,7 @@ def create_session(status: davey.SessionStatus = davey.SessionStatus.inactive):
             "Could not obtain commit from proposals; skipping active session setup."
         )
     session.process_commit(cw.commit)
+    session.prepare_transition(0, session.protocol_version)
     return session
 
 
@@ -189,6 +190,7 @@ def test_process_commit_runs_successfully_can_process_own_commit():
     # should not raise
     session.process_commit(cw.commit)
     assert session.status == davey.SessionStatus.active
+    session.prepare_transition(0, session.protocol_version)
     assert session.ready
 
 
@@ -203,6 +205,16 @@ def test_process_commit_throws_on_invalid_commit():
     session = create_session(davey.SessionStatus.awaiting_response)
     with pytest.raises(Exception):
         session.process_commit(EMPTY_BUFFER)
+
+
+def test_prepare_transition_clears_key_on_reinitialized_session_without_group():
+    session = create_session(davey.SessionStatus.active)
+    assert session.can_encrypt
+
+    session.reinit(1, MY_USER_ID, CHANNEL_ID)
+    # should not raise
+    session.prepare_transition(0, 1)
+    assert not session.can_encrypt
 
 
 def test_voice_privacy_code_empty_on_non_established_groups():

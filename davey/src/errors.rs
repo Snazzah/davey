@@ -260,6 +260,14 @@ pub enum UpdateRatchetsError {
 }
 
 #[derive(Error, Debug)]
+pub enum TransitionError {
+  #[error("{0}")]
+  Reset(#[from] ResetError),
+  #[error("failed to update ratchets: {0}")]
+  UpdatingRatchetsFailed(#[from] UpdateRatchetsError),
+}
+
+#[derive(Error, Debug)]
 pub enum EncryptError {
   #[error("session is not ready to encrypt packets")]
   NotReady,

@@ -1,6 +1,6 @@
 {
   "name": "@snazzah/davey",
-  "version": "0.1.12",
+  "version": "0.2.0-beta",
   "description": "DAVE protocol implementation",
   "main": "index.js",
   "types": "index.d.ts",

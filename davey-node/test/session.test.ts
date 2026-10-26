@@ -75,6 +75,7 @@ const createSession = (status: SessionStatus = SessionStatus.INACTIVE) => {
       session.getSerializedKeyPackage();
       const { commit } = session.processProposals(ProposalsOperationType.APPEND, APPENDING_PROPOSALS);
       session.processCommit(commit!);
+      session.prepareTransition(0, session.protocolVersion);
       break;
   }
 
@@ -199,6 +200,7 @@ const createSession = (status: SessionStatus = SessionStatus.INACTIVE) => {
     const { commit } = session.processProposals(ProposalsOperationType.APPEND, APPENDING_PROPOSALS);
     t.notThrows(() => session.processCommit(commit!));
     t.is(session.status, SessionStatus.ACTIVE);
+    t.notThrows(() => session.prepareTransition(0, session.protocolVersion));
     t.true(session.ready);
   });
 
@@ -212,6 +214,18 @@ const createSession = (status: SessionStatus = SessionStatus.INACTIVE) => {
     const session = createSession(SessionStatus.AWAITING_RESPONSE);
 
     t.throws(() => session.processCommit(EMPTY_BUFFER));
+  });
+}
+
+// prepareTransition()
+{
+  test('prepareTransition() clears the encryption key on a reinitialized session without a group', (t) => {
+    const session = createSession(SessionStatus.ACTIVE);
+    t.true(session.canEncrypt);
+
+    session.reinit(1, MY_USER_ID, CHANNEL_ID);
+    t.notThrows(() => session.prepareTransition(0, 1));
+    t.false(session.canEncrypt);
   });
 }
 

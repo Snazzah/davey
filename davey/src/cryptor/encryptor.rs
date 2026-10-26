@@ -79,6 +79,18 @@ impl Encryptor {
     self.truncated_nonce = 0;
   }
 
+  /// Equivalent to `SetKeyRatchet(nullptr)`.
+  pub fn clear_key_ratchet(&mut self) {
+    self.ratchet = None;
+    self.cryptor = None;
+    self.current_key_generation = 0;
+    self.truncated_nonce = 0;
+  }
+
+  pub fn has_key_ratchet(&self) -> bool {
+    self.ratchet.is_some()
+  }
+
   // TODO use results to propogate errors up and return properly
   pub fn encrypt(
     &mut self,

@@ -136,6 +136,11 @@ impl DaveSession {
     self.inner.is_ready()
   }
 
+  #[getter]
+  fn can_encrypt(&self) -> bool {
+    self.inner.can_encrypt()
+  }
+
   fn get_epoch_authenticator(&self) -> Option<&[u8]> {
     self.inner.get_epoch_authenticator().map(|ea| ea.as_slice())
   }
@@ -199,6 +204,22 @@ impl DaveSession {
       .map_err(|err| py_value_error!("Failed to process commit: {err:?}"))?;
 
     Ok(())
+  }
+
+  fn prepare_transition(&mut self, transition_id: u16, protocol_version: u16) -> PyResult<()> {
+    self
+      .inner
+      .prepare_transition(transition_id, protocol_version)
+      .map_err(|err| py_value_error!("Failed to prepare transition: {err:?}"))?;
+
+    Ok(())
+  }
+
+  fn execute_transition(&mut self, transition_id: u16) -> PyResult<bool> {
+    self
+      .inner
+      .execute_transition(transition_id)
+      .map_err(|err| py_value_error!("Failed to execute transition: {err:?}"))
   }
 
   fn get_verification_code(&self, user_id: u64) -> PyResult<String> {
