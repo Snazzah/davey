@@ -29,6 +29,10 @@ pub struct EncryptionStats {
   pub attempts: u64,
   /// Maximum attempts reached at encryption
   pub max_attempts: u64,
+  /// Number of encryptions that failed due to a missing key
+  pub missing_keys: u64,
+  /// Total amounts of packets that passed through
+  pub passthroughs: u64,
 }
 
 pub struct Encryptor {
@@ -51,6 +55,8 @@ impl Encryptor {
         duration: 0,
         attempts: 0,
         max_attempts: 0,
+        missing_keys: 0,
+        passthroughs: 0,
       },
     );
     stats.insert(
@@ -61,6 +67,8 @@ impl Encryptor {
         duration: 0,
         attempts: 0,
         max_attempts: 0,
+        missing_keys: 0,
+        passthroughs: 0,
       },
     );
 
@@ -102,7 +110,9 @@ impl Encryptor {
   ) -> Result<usize, EncryptorEncryptError> {
     if self.ratchet.is_none() {
       warn!("encryption failed, no ratchet");
-      self.stats.get_mut(media_type).unwrap().failures += 1;
+      let stats = self.stats.get_mut(media_type).unwrap();
+      stats.failures += 1;
+      stats.missing_keys += 1;
       return Err(EncryptorEncryptError::MissingKeyRatchet);
     }
 
@@ -166,6 +176,7 @@ impl Encryptor {
       let (curr_cryptor, truncated_nonce) = self.get_next_cryptor_and_nonce();
 
       if curr_cryptor.is_none() {
+        self.stats.get_mut(media_type).unwrap().missing_keys += 1;
         return Err(EncryptorEncryptError::MissingCryptor);
       }
 

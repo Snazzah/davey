@@ -979,6 +979,12 @@ impl DaveSession {
     // Return the packet back to the client (passthrough) if the packet is an opus silence packet
     // This may change in the future, see: https://daveprotocol.com/#silence-packets
     if codec == Codec::OPUS && packet == OPUS_SILENCE_PACKET {
+      self
+        .encryptor
+        .stats
+        .get_mut(&media_type)
+        .unwrap()
+        .passthroughs += 1;
       return Ok(Cow::Borrowed(packet));
     }
 
@@ -1003,20 +1009,24 @@ impl DaveSession {
     // Return the packet back to the client (passthrough) if the packet is an opus silence packet
     // This may change in the future, see: https://daveprotocol.com/#silence-packets
     if codec == Codec::OPUS && packet == OPUS_SILENCE_PACKET {
+      self
+        .encryptor
+        .stats
+        .get_mut(&media_type)
+        .unwrap()
+        .passthroughs += 1;
       encrypted_packet.clear();
       encrypted_packet.extend_from_slice(packet);
       return Ok(());
     }
 
-    if !self.encryptor.has_key_ratchet() {
-      return Err(EncryptError::NotReady);
-    }
-
-    self
+    match self
       .encryptor
-      .encrypt_to_vec(&media_type, codec, packet, encrypted_packet)?;
-
-    Ok(())
+      .encrypt_to_vec(&media_type, codec, packet, encrypted_packet)
+    {
+      Err(EncryptorEncryptError::MissingKeyRatchet) => Err(EncryptError::NotReady),
+      result => Ok(result?),
+    }
   }
 
   /// End-to-end encrypt an opus packet.

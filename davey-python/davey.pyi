@@ -127,6 +127,10 @@ class EncryptionStats:
     """Total amounts of encryption attempts"""
     max_attempts: int
     """Maximum attempts reached at encryption"""
+    missing_keys: int
+    """Number of encryptions that failed due to a missing key"""
+    passthroughs: int
+    """Total amounts of packets that passed through"""
 
 class DecryptionStats:
     successes: int

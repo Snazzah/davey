@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
 - `DaveSession.process_welcome()` now has an optional `recognized_user_ids` argument that gets checked against the users in the welcome group. (parity with [libdave v1.2.0](https://github.com/discord/libdave/releases/tag/v1.2.0/cpp))
 - `DaveSession.prepare_transition()` and `DaveSession.execute_transition()` for handling opcodes 21 and 22. Preparing a downgrade to protocol version 0 keeps the current decryption keys usable for 10 seconds.
 - `DaveSession.can_encrypt` to check whether the session has a key to encrypt with.
+- `EncryptionStats.missing_keys` for the number of encryptions that failed due to a missing key. (parity with libdave)
+- `EncryptionStats.passthroughs` for the number of Opus silence packets that passed through. Opus silence packets are now also counted in `DecryptionStats.passthroughs`. (parity with libdave)
 
 ### Fixed:
 

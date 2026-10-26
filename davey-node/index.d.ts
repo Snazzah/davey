@@ -226,6 +226,10 @@ export interface EncryptionStats {
   attempts: number
   /** Maximum attempts reached at encryption */
   maxAttempts: number
+  /** Number of encryptions that failed due to a missing key */
+  missingKeys: number
+  /** Total amounts of packets that passed through */
+  passthroughs: number
 }
 
 /**

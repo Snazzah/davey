@@ -87,6 +87,7 @@ impl Decryptor {
     if media_type == MediaType::AUDIO && encrypted_frame == OPUS_SILENCE_PACKET {
       let copy_size = min(frame.len(), encrypted_frame.len());
       frame[..copy_size].copy_from_slice(&encrypted_frame[..copy_size]);
+      self.stats.get_mut(&media_type).unwrap().passthroughs += 1;
       return Ok(copy_size);
     }
 
