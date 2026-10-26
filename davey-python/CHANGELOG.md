@@ -24,6 +24,7 @@ All notable changes to this project will be documented in this file.
 - Group IDs are now checked when processing welcomes. (parity with [libdave v1.2.0](https://github.com/discord/libdave/releases/tag/v1.2.0/cpp) & [v1.2.1](https://github.com/discord/libdave/releases/tag/v1.2.1/cpp))
 - Own commits are only accepted if they exactly match the pending commit.
 - Passthrough mode can now only shorten the cipher manager expiry, not extend it. (https://github.com/discord/libdave/commit/48e6232e0884e4774576184b9031c1a9ac19a604)
+- Decrypting with a newer key generation can now only shorten the expiry of older generations, not extend it. (parity with libdave)
 - Missing nonces that arrive early are now tracked. (https://github.com/discord/libdave/commit/65be1a4476e41219b536dba15ab919f66b2a63b4)
 - Missing nonces are now limited to 1000 tracked nonces instead of a window of the last 1000 nonces, so older frames can still be decrypted. (https://github.com/discord/libdave/commit/3bdd9fdf1c45b29d45b62e4b228ce627f9b9f707)
 - Duplicate key ratchet installs are now ignored. (https://github.com/discord/libdave/commit/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169)

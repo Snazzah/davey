@@ -173,7 +173,11 @@ impl CipherManager {
     for (cryptor_generation, cryptor) in self.cryptor_generations.iter_mut() {
       if cryptor_generation < &self.newest_generation {
         trace!("Updating expiry for cryptor, generation: {cryptor_generation}");
-        cryptor.expiry = Some(expiry_time)
+        cryptor.expiry = Some(
+          cryptor
+            .expiry
+            .map_or(expiry_time, |expiry| expiry.min(expiry_time)),
+        );
       }
     }
   }
