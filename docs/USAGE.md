@@ -13,7 +13,7 @@ Your library should:
 - Handle voice op codes `CLIENTS_CONNECT` (11) and `CLIENT_DISCONNECT` (13)
 
 # Implementation
-Make sure to have `@snazzah/davey` as a peer/optional dependency. It should be at least at version `0.1.6`.
+Make sure to have `@snazzah/davey` as a peer/optional dependency. It should be at least at version `0.2.0`.
 
 Then, add these voice opcodes to any enum/mapping you have these for:
 ```ts
@@ -43,7 +43,7 @@ this.sendWS(VoiceOPCodes.IDENTIFY, {
 Very cool, now Discord knows you like DAVE, now time to handle it...
 
 ## Session Transitions
-During the voice session, every time someone joins or leaves, you'll need to transition the MLS group to another epoch. You won't have to deal with the exchanging secrets and epoch stuff, but you *do* have to handle transitions.
+During the voice session, every time someone joins or leaves, you'll need to transition the MLS group to another epoch. You won't have to deal with the exchanging secrets and epoch stuff, but you *do* have to tell the session about transitions with `daveSession.prepareTransition` and `daveSession.executeTransition`.
 
 [In my PR](https://github.com/projectdysnomia/dysnomia/pull/196), I've stored pending transitions in `#davePendingTransitions`, noted if the last transition was a downgrade with `#daveDowngraded` and executed them with `#executePendingTransition` which consists of this:
 ```ts
@@ -51,6 +51,15 @@ During the voice session, every time someone joins or leaves, you'll need to tra
 	// If we didn't expect the transition, warn about it.
   if(!this.#davePendingTransitions.has(transitionId)) {
     return this.emit("warn", `Received execute transition, but we don't have a pending transition for ${transitionId}`);
+  }
+
+  // ID 0 already gets executed by davey in `prepareTransition`
+  if(transitionId !== 0) {
+    try {
+      this.daveSession?.executeTransition(transitionId);
+    } catch(e) {
+      this.emit("warn", `Failed to execute DAVE transition: ${e}`);
+    }
   }
 
   const oldVersion = this.daveProtocolVersion;
@@ -64,11 +73,10 @@ During the voice session, every time someone joins or leaves, you'll need to tra
   } else if(transitionId > 0 && this.#daveDowngraded) {
     // We've upgraded from transport-only encryption, cool.
     this.#daveDowngraded = false;
-    this.daveSession?.setPassthroughMode(true, 10);
+    this.daveSession?.setPassthroughMode(false, 10);
     this.emit("debug", "DAVE protocol upgraded");
   }
 
-  // In the future we'd want to signal to the DAVESession to transition also, but it only supports v1 at this time
   this.emit("debug", `DAVE transition executed (v${oldVersion} -> v${this.daveProtocolVersion}, id: ${transitionId})`);
 
   this.#davePendingTransitions.delete(transitionId);
@@ -76,14 +84,14 @@ During the voice session, every time someone joins or leaves, you'll need to tra
 }
 ```
 
-Note that `setPassthroughMode` function. It's used to let other clients to send unencrypted voice frames to us and "passthrough" the MLS decryption. What if a packet is a little late? In this case, when we upgrade from a previously-downgraded session, we allow clients to passthrough packets for 10 seconds, and after that, their unencrypted packets won't be allowed anymore. This 10 second rule is carried out through pretty much every transition. The package automatically handles session changes from within the MLS group, so joins and leaves mid-encrypted session shouldn't impact anything. However during upgrades and downgrades, you'll have to handle those (as you see here) and we'll get to handling that more later.
+Note that `setPassthroughMode` function. It's used to let other clients to send unencrypted voice frames to us and "passthrough" the MLS decryption. Enabling it allows unencrypted frames until it's disabled. What if a packet is a little late? In this case, when we upgrade from a previously-downgraded session, we disable passthrough mode with a 10 second expiry, so clients can still passthrough packets for 10 seconds, and after that, their unencrypted packets won't be allowed anymore. This 10 second rule is carried out through pretty much every transition. The package handles the keys for joins and leaves mid-encrypted session as long as you prepare and execute transitions. However during upgrades and downgrades, you'll have to handle passthrough mode (as you see here) and we'll get to handling that more later.
 
 ## Handling Voice Events
 
 Now we need to update the voice WebSocket handler to get all the new events down.
 
 #### `SESSION_DESCRIPTION`
-During `SESSION_DESCRIPTION`, note down the returned protocol version from `dave_protocol_version`. This is where your session should be initialized. [In my PR](https://github.com/projectdysnomia/dysnomia/pull/196), I made a function to create/reinitialize the DAVE session since we may need to re-init the session depending on what the voice server tells us, so in this case, a `#reinitDaveSession` function would work. (with it using the version we just got from this event)
+During `SESSION_DESCRIPTION`, note down the returned protocol version from `dave_protocol_version`, and set `#daveDowngraded` if it's `0`. This is where your session should be initialized. [In my PR](https://github.com/projectdysnomia/dysnomia/pull/196), I made a function to create/reinitialize the DAVE session since we may need to re-init the session depending on what the voice server tells us, so in this case, a `#reinitDaveSession` function would work. (with it using the version we just got from this event)
 
 ```ts
 #reinitDaveSession() {
@@ -98,14 +106,19 @@ During `SESSION_DESCRIPTION`, note down the returned protocol version from `dave
 			this.emit("debug", `DAVE session initialized for protocol version ${this.daveProtocolVersion}`);
 		}
 
+		// When upgrading, unencrypted packets are still sent until the transition is executed
+		if(this.#daveDowngraded) {
+			this.daveSession.setPassthroughMode(true);
+		}
+
 		// Generate a key package and send it to the voice server
 		this.sendWSBinary(VoiceOPCodes.MLS_KEY_PACKAGE, this.daveSession.getSerializedKeyPackage());
 	} else {
 		// This purges the group internally, but you still have decryptors
 		this.daveSession?.reset();
 		if(this.daveSession) {
-			// Allow clients to passthrough for 10 seconds after downgrading
-			this.daveSession.setPassthroughMode(true, 10);
+			// Allow clients to passthrough after downgrading
+			this.daveSession.setPassthroughMode(true);
 			this.emit("debug", "DAVE session reset");
 		}
 	}
@@ -145,7 +158,7 @@ if(commit) {
 
 `daveSession.processProposals` needs the proposals op type (either being APPEND/0 or REVOKE/1) and the proposals (or proposal refs if revoke). Both `commit` and `welcome` are optional. If an in-flight proposal was revoked (a user joins then leaves before being in the MLS group) then a commit could be `null`, meaning we don't need to create a commit for them. `welcome` can also be `null` if the resulting commit doesn't add new members to the MLS group. So we handle that here.
 
-Also for `recognizedUserIds`, you don't *have* to have this, its an optional argument, but you should for security purposes. This should be the set of user IDs you received through `CLIENTS_CONNECT`, so make sure to maintain that in your library code.
+Also for `recognizedUserIds`, you don't *have* to have this, its an optional argument, but you should for security purposes. This should be the set of user IDs you received through `CLIENTS_CONNECT` **and your own user ID**, so make sure to maintain that in your library code.
 
 #### `MLS_ANNOUNCE_COMMIT_TRANSITION`
 Here's where you actually process those commits you've made. It can either be your own or someone else's. The package will handle both cases.
@@ -153,6 +166,8 @@ Here's where you actually process those commits you've made. It can either be yo
 const transitionId = message.readUInt16BE(3);
 try {
 	this.daveSession.processCommit(message.subarray(5));
+	// Prepare the new keys, these are used once the transition is executed (or right away for transition ID 0)
+	this.daveSession.prepareTransition(transitionId, this.daveSession.protocolVersion);
 	// We note our pending transition because `DAVE_EXECUTE_TRANSITION` will follow
 	// except on reinitializing transitions (transition ID 0)
 	if (transitionId !== 0) {
@@ -181,7 +196,8 @@ This is pretty much the previous event. except we are joining the group and need
 ```ts
 const transitionId = m.readUInt16BE(3);
 try {
-	this.daveSession.processWelcome(m.subarray(5));
+	this.daveSession.processWelcome(m.subarray(5), recognizedUserIds);
+	this.daveSession.prepareTransition(transitionId, this.daveSession.protocolVersion);
 	if (transitionId !== 0) {
     this.#davePendingTransitions.set(transitionId, this.daveProtocolVersion);
 		this.sendWS(VoiceOPCodes.DAVE_TRANSITION_READY, {transition_id: transitionId});
@@ -199,6 +215,12 @@ Here we, well, prepare for a transition. I store the pending transition in the a
 this.emit("debug", `Preparing for DAVE transition (${packet.d.transition_id}, v${packet.d.protocol_version})`);
 this.#davePendingTransitions.set(packet.d.transition_id, packet.d.protocol_version);
 
+try {
+	this.daveSession?.prepareTransition(packet.d.transition_id, packet.d.protocol_version);
+} catch(e) {
+	this.emit("warn", `Failed to prepare DAVE transition: ${e}`);
+}
+
 // When the included transition ID is 0, the transition is for (re)initialization and it can be executed immediately.
 if(packet.d.transition_id === 0) {
 	this.#executePendingTransition(packet.d.transition_id);
@@ -206,9 +228,7 @@ if(packet.d.transition_id === 0) {
 	// Upon receiving this message, clients enable passthrough mode on their receive-side
 	// https://daveprotocol.com/#downgrade-to-transport-only-encryption
 	if(packet.d.protocol_version === 0) {
-		// Setting the passthrough expiry to two minutes, the transition *shouldn't* last this long and I don't know how long it is, so this should be fine
-		// NOTE: the reason why I set passthrough mode here is to let unencrypted frames through right now, once the transition finishes this shouldn't matter
-		this.daveSession?.setPassthroughMode(true, 120);
+		this.daveSession?.setPassthroughMode(true);
 	}
 	this.sendWS(VoiceOPCodes.DAVE_TRANSITION_READY, {transition_id: packet.d.transition_id});
 }
@@ -238,23 +258,30 @@ Now that we have WebSocket message exchanging squared away, we should actually s
 
 Encrypting voice packets is fairly easy, right before you encrypt your packet with the transport encryption mode, encrypt it with DAVE:
 ```ts
-const frame = this.#daveReady && !unencryptedFrame.equals(SILENCE_FRAME) ? this.daveSession.encryptOpus(unencryptedFrame) : unencryptedFrame;
+let frame = unencryptedFrame;
+if(this.#daveReady && !unencryptedFrame.equals(SILENCE_FRAME)) {
+	// After a welcome, we don't have a key until the transition is executed, so drop the frame to avoid leaking it
+	if(!this.daveSession.canEncrypt) {
+		return;
+	}
+	frame = this.daveSession.encryptOpus(unencryptedFrame);
+}
 ```
 
 Here we use a `#daveReady` getter that just consists of this:
 ```ts
 get #daveReady() {
-	return this.daveProtocolVersion !== 0 && this.daveSession?.ready;
+	return this.daveProtocolVersion !== 0 && !this.#daveDowngraded && this.daveSession?.ready;
 }
 ```
 
-This makes sure that if we have downgraded, we stop encrypting. Also we don't encrypt silent frames. The package already filters those (before it didn't) but doing it yourself probably won't hurt. Should also note `daveSession.ready` means that packets are *ready* to be decrypted and encrypted. Checking readiness in general is with `daveSession.status`.
+This makes sure that if we have downgraded, we stop encrypting. Also we don't encrypt silent frames. The package already filters those (before it didn't) but doing it yourself probably won't hurt. Should also note `daveSession.ready` means that packets are *ready* to be decrypted, and `daveSession.canEncrypt` means we have a key to encrypt with. Checking readiness in general is with `daveSession.status`.
 
 Now time to decrypt other's packets. Remember the 10 second rule? This gets a bit weird since we want to decrypt packets that are late after a decryption. So sometimes, encrypted packets may show up even after we went transport-only. (This is why the session class is kept even after downgrading!) `daveSession.canPassthrough` will tell you if a user's packet can passthrough. This means they also have a decryption key in the session and could decrypt those late packets. Woo!
 ```ts
 if(this.daveSession && userID && !data.equals(SILENCE_FRAME)) {
 	try {
-		const canDecrypt = this.#daveReady || (this.daveSession.ready && this.daveSession.canPassthrough(userID));
+		const canDecrypt = this.daveSession.ready && (this.#daveReady || this.daveSession.canPassthrough(userID));
 		if(canDecrypt) {
 			data = this.daveSession.decrypt(userID, Davey.MediaType.AUDIO, data);
 		}
