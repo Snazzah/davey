@@ -539,7 +539,6 @@ impl DaveSession {
 
     validate_projected_roster(group, group.pending_proposals(), None)?;
 
-    // libdave seems to overwrite pendingGroupCommit_ and then not use it anywhere else...
     if group.pending_commit().is_some() {
       warn!("A pending commit was already created! Removing...");
       group
