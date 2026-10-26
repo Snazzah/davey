@@ -1,6 +1,6 @@
 #![allow(clippy::map_entry)]
 use std::{
-  cmp::max,
+  cmp::min,
   collections::{HashMap, VecDeque},
   sync::Arc,
   time::Duration,
@@ -138,17 +138,15 @@ impl CipherManager {
 
     // Add any missing nonces to the queue
     if wrapped_big_nonce >= expected_nonce {
-      let oldest_missing_nonce = wrapped_big_nonce.saturating_sub(MAX_MISSING_NONCES);
+      let missing_nonces = min(wrapped_big_nonce - expected_nonce, MAX_MISSING_NONCES);
 
       while !self.missing_nonces.is_empty()
-        && self.missing_nonces.front().unwrap() < &oldest_missing_nonce
+        && self.missing_nonces.len() as u64 + missing_nonces > MAX_MISSING_NONCES
       {
         self.missing_nonces.pop_front();
       }
 
-      // If we're missing a lot, we don't want to add everything since newestProcessedNonce_
-      let missing_range_start = max(oldest_missing_nonce, expected_nonce);
-      for i in missing_range_start..wrapped_big_nonce {
+      for i in (wrapped_big_nonce - missing_nonces)..wrapped_big_nonce {
         self.missing_nonces.push_back(i);
       }
 
