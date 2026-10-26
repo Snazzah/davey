@@ -268,11 +268,25 @@ pub enum TransitionError {
 }
 
 #[derive(Error, Debug)]
+#[non_exhaustive]
 pub enum EncryptError {
   #[error("session is not ready to encrypt packets")]
   NotReady,
   #[error("failed to encrypt packet")]
-  EncryptionFailed,
+  EncryptionFailed(#[from] EncryptorEncryptError),
+}
+
+#[derive(Error, Debug)]
+#[non_exhaustive]
+pub enum EncryptorEncryptError {
+  #[error("no key ratchet to encrypt with")]
+  MissingKeyRatchet,
+  #[error("failed to get a cryptor for the current key generation")]
+  MissingCryptor,
+  #[error("failed to encrypt frame")]
+  EncryptionFailure,
+  #[error("encrypted frame failed codec validation too many times")]
+  TooManyAttempts,
 }
 
 #[derive(Error, Debug)]

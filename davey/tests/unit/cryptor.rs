@@ -19,15 +19,9 @@ const SECOND_USER_ID: &str = "2222222222222222222";
 
 fn encrypt_frame(encryptor: &mut Encryptor, frame: &[u8]) -> Vec<u8> {
   let mut encrypted_frame = vec![0u8; frame.len() * 2];
-  let mut bytes_written = 0;
-  let success = encryptor.encrypt(
-    &MediaType::AUDIO,
-    Codec::OPUS,
-    frame,
-    &mut encrypted_frame,
-    &mut bytes_written,
-  );
-  assert!(success);
+  let bytes_written = encryptor
+    .encrypt(&MediaType::AUDIO, Codec::OPUS, frame, &mut encrypted_frame)
+    .expect("encryption should succeed");
   encrypted_frame.truncate(bytes_written);
   encrypted_frame
 }
@@ -94,15 +88,14 @@ fn random_opus_frame_encrypt_decrypt() {
   let mut decrypted_frame = vec![0u8; incoming_frame.len()];
 
   // encrypt frame
-  let mut bytes_written = 0;
-  let success = encryptor.encrypt(
-    &MediaType::AUDIO,
-    Codec::OPUS,
-    &incoming_frame,
-    &mut encrypted_frame,
-    &mut bytes_written,
-  );
-  assert!(success);
+  let bytes_written = encryptor
+    .encrypt(
+      &MediaType::AUDIO,
+      Codec::OPUS,
+      &incoming_frame,
+      &mut encrypted_frame,
+    )
+    .expect("encryption should succeed");
   assert!(bytes_written >= incoming_frame.len());
 
   // decrypt frame

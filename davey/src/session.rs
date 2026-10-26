@@ -1012,12 +1012,9 @@ impl DaveSession {
       return Err(EncryptError::NotReady);
     }
 
-    if !self
+    self
       .encryptor
-      .encrypt_to_vec(&media_type, codec, packet, encrypted_packet)
-    {
-      return Err(EncryptError::EncryptionFailed);
-    }
+      .encrypt_to_vec(&media_type, codec, packet, encrypted_packet)?;
 
     Ok(())
   }
