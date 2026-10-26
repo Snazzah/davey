@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::Instant};
 
-use tracing::warn;
+use tracing::{debug, warn};
 
 use crate::errors::EncryptorEncryptError;
 
@@ -37,6 +37,7 @@ pub struct EncryptionStats {
 
 pub struct Encryptor {
   ratchet: Option<HashRatchet>,
+  key_domain_identity: Option<Vec<u8>>,
   cryptor: Option<AeadCipher>,
   current_key_generation: u32,
   truncated_nonce: u32,
@@ -74,6 +75,7 @@ impl Encryptor {
 
     Self {
       ratchet: None,
+      key_domain_identity: None,
       cryptor: None,
       current_key_generation: 0,
       truncated_nonce: 0,
@@ -83,18 +85,23 @@ impl Encryptor {
   }
 
   pub fn set_key_ratchet(&mut self, ratchet: HashRatchet) {
+    // only a new key domain may restart the nonce sequence, a repeat would reuse nonces
+    if self.key_domain_identity.as_deref() != Some(ratchet.domain_identity()) {
+      self.key_domain_identity = Some(ratchet.domain_identity().to_vec());
+      self.current_key_generation = 0;
+      self.truncated_nonce = 0;
+    } else {
+      debug!("Key ratchet re-installed for current key domain, keeping nonce sequence");
+    }
+
     self.ratchet = Some(ratchet);
     self.cryptor = None;
-    self.current_key_generation = 0;
-    self.truncated_nonce = 0;
   }
 
   /// Equivalent to `SetKeyRatchet(nullptr)`.
   pub fn clear_key_ratchet(&mut self) {
     self.ratchet = None;
     self.cryptor = None;
-    self.current_key_generation = 0;
-    self.truncated_nonce = 0;
   }
 
   pub fn has_key_ratchet(&self) -> bool {

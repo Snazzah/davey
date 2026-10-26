@@ -25,6 +25,7 @@ All notable changes to this project will be documented in this file.
 - Passthrough mode can now only shorten the cipher manager expiry, not extend it. (https://github.com/discord/libdave/commit/48e6232e0884e4774576184b9031c1a9ac19a604)
 - Missing nonces that arrive early are now tracked. (https://github.com/discord/libdave/commit/65be1a4476e41219b536dba15ab919f66b2a63b4)
 - Duplicate key ratchet installs are now ignored. (https://github.com/discord/libdave/commit/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169)
+- Re-installing the encryption key of the current epoch no longer restarts the nonce sequence, which reused nonces. (https://github.com/discord/libdave/commit/d3bac61ff5f0541af3e6751de34b3d5d48349eed)
 - Duplicate user IDs are now rejected in proposals, welcomes and commits. (parity with libdave)
 - Proposals and commits are now checked for their wire format, epoch, content type and sender, and commits are rejected without queued proposals or with non-reference proposals. (parity with libdave)
 - Welcomes are no longer lost when the members being added were proposed before the latest batch of proposals.

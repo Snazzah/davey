@@ -5,7 +5,8 @@ use std::{sync::Arc, time::Duration};
 
 use crate::{
   cryptor::{
-    Codec, MediaType, OPUS_SILENCE_PACKET, clock::Clock, decryptor::Decryptor, encryptor::Encryptor,
+    Codec, MediaType, OPUS_SILENCE_PACKET, clock::Clock, decryptor::Decryptor,
+    encryptor::Encryptor, frame_processors::InboundFrameProcessor,
   },
   errors::DecryptorDecryptError,
 };
@@ -38,6 +39,13 @@ fn decrypt_frame(
 ) -> Result<usize, DecryptorDecryptError> {
   let mut decrypted_frame = vec![0u8; encrypted_frame.len()];
   decryptor.decrypt(MediaType::AUDIO, encrypted_frame, &mut decrypted_frame)
+}
+
+fn truncated_nonce_of(encrypted_frame: &[u8]) -> u32 {
+  let mut frame_processor = InboundFrameProcessor::new();
+  frame_processor.parse_frame(encrypted_frame);
+  assert!(frame_processor.encrypted);
+  frame_processor.truncated_nonce
 }
 
 /// libdave: [`CryptorTests.PassthroughTwoBuffers`](https://github.com/discord/libdave/blob/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169/cpp/test/cryptor_tests.cpp#L95)
@@ -228,4 +236,70 @@ fn distinct_domain_ratchets_are_not_deduplicated() {
 
   assert!(decrypt_frame(&mut decryptor, &first_frame).is_ok());
   assert!(decrypt_frame(&mut decryptor, &second_frame).is_ok());
+}
+
+/// libdave: [`CryptorTests.SameDomainReinstallKeepsNonceSequence`](https://github.com/discord/libdave/blob/d3bac61ff5f0541af3e6751de34b3d5d48349eed/cpp/test/cryptor_tests.cpp#L326)
+#[test]
+fn same_domain_reinstall_keeps_nonce_sequence() {
+  let frame = from_hex(RANDOM_BYTES);
+
+  let mut encryptor = Encryptor::new();
+  encryptor.set_key_ratchet(static_key_ratchet(USER_ID));
+  let first_frame = encrypt_frame(&mut encryptor, &frame);
+  let second_frame = encrypt_frame(&mut encryptor, &frame);
+
+  encryptor.set_key_ratchet(static_key_ratchet(USER_ID));
+  let third_frame = encrypt_frame(&mut encryptor, &frame);
+
+  assert_eq!(
+    truncated_nonce_of(&third_frame),
+    truncated_nonce_of(&second_frame) + 1
+  );
+  assert_ne!(third_frame, first_frame);
+
+  let mut decryptor = Decryptor::new();
+  decryptor.transition_to_key_ratchet(static_key_ratchet(USER_ID));
+  assert!(decrypt_frame(&mut decryptor, &first_frame).is_ok());
+  assert!(decrypt_frame(&mut decryptor, &second_frame).is_ok());
+  assert!(decrypt_frame(&mut decryptor, &third_frame).is_ok());
+}
+
+/// libdave: [`CryptorTests.SameDomainReinstallAfterClearKeepsNonceSequence`](https://github.com/discord/libdave/blob/d3bac61ff5f0541af3e6751de34b3d5d48349eed/cpp/test/cryptor_tests.cpp#L350)
+#[test]
+fn same_domain_reinstall_after_clear_keeps_nonce_sequence() {
+  let frame = from_hex(RANDOM_BYTES);
+
+  let mut encryptor = Encryptor::new();
+  encryptor.set_key_ratchet(static_key_ratchet(USER_ID));
+  let first_frame = encrypt_frame(&mut encryptor, &frame);
+
+  encryptor.clear_key_ratchet();
+  assert!(!encryptor.has_key_ratchet());
+
+  encryptor.set_key_ratchet(static_key_ratchet(USER_ID));
+  let second_frame = encrypt_frame(&mut encryptor, &frame);
+
+  assert_eq!(
+    truncated_nonce_of(&second_frame),
+    truncated_nonce_of(&first_frame) + 1
+  );
+}
+
+/// libdave: [`CryptorTests.NewDomainInstallRestartsNonceSequence`](https://github.com/discord/libdave/blob/d3bac61ff5f0541af3e6751de34b3d5d48349eed/cpp/test/cryptor_tests.cpp#L369)
+#[test]
+fn new_domain_install_restarts_nonce_sequence() {
+  let frame = from_hex(RANDOM_BYTES);
+
+  let mut encryptor = Encryptor::new();
+  encryptor.set_key_ratchet(static_key_ratchet(FIRST_USER_ID));
+  let first_domain_frame = encrypt_frame(&mut encryptor, &frame);
+  encrypt_frame(&mut encryptor, &frame);
+
+  encryptor.set_key_ratchet(static_key_ratchet(SECOND_USER_ID));
+  let second_domain_frame = encrypt_frame(&mut encryptor, &frame);
+
+  assert_eq!(
+    truncated_nonce_of(&second_domain_frame),
+    truncated_nonce_of(&first_domain_frame)
+  );
 }
