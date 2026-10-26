@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get_version.outputs.current_version }}
+      cargo_version: ${{ steps.get_version.outputs.cargo_version }}
+      prerelease: ${{ steps.get_version.outputs.prerelease }}
     defaults:
       run:
         working-directory: davey-python
@@ -29,9 +31,16 @@ jobs:
       - name: Get current version
         id: get_version
         run: |
-            version="$(uvx --from=toml-cli toml get --toml-path=Cargo.toml package.version)"
-            version="${version/-pre./rc}"
-            echo "current_version=${version}" >> "$GITHUB_OUTPUT"
+            cargo_version="$(uvx --from=toml-cli toml get --toml-path=Cargo.toml package.version)"
+            echo "cargo_version=${cargo_version}" >> "$GITHUB_OUTPUT"
+            # Normalize like maturin does (e.g. 0.2.0-beta -> 0.2.0b0)
+            uv run --no-project --with packaging python - "$cargo_version" >> "$GITHUB_OUTPUT" <<'EOF'
+            import sys
+            from packaging.version import Version
+            version = Version(sys.argv[1])
+            print(f"current_version={version}")
+            print(f"prerelease={str(version.is_prerelease).lower()}")
+            EOF
 
   publish:
     name: Publish
@@ -66,17 +75,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - name: Generate a changelog
-        uses: orhun/git-cliff-action@v4
-        id: git-cliff
-        with:
-          config: cliff.toml
-          args: --unreleased --strip all --ignore-tags="(js|rs)-*" --include-path="./davey-python/**" --include-path="./davey/**"
-        env:
-          OUTPUT: davey-python/CHANGELOG.md
-          GITHUB_REPO: ${{ github.repository }}
+      - name: Pull changelog
+        run: .github/scripts/changelog-section.sh davey-python/CHANGELOG.md "${{ needs.get_version.outputs.version }}" "${{ needs.get_version.outputs.cargo_version }}" > "$RUNNER_TEMP/release-notes.md"
 
       - name: Create release
         uses: softprops/action-gh-release@v3
@@ -84,4 +84,5 @@ jobs:
           tag_name: "py-${{ needs.get_version.outputs.version }}"
           name: "davey-python@${{ needs.get_version.outputs.version }}"
           target_commitish: ${{ github.sha }}
-          body_path: davey-python/CHANGELOG.md
+          body_path: ${{ runner.temp }}/release-notes.md
+          prerelease: ${{ needs.get_version.outputs.prerelease }}

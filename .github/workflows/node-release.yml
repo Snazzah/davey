@@ -26,6 +26,7 @@ jobs:
         working-directory: davey-node
     outputs:
       version: ${{ steps.set-version.outputs.version }}
+      prerelease: ${{ steps.set-version.outputs.prerelease }}
     steps:
       - uses: actions/checkout@v7
       - name: setup pnpm
@@ -51,6 +52,21 @@ jobs:
       - name: List packages
         run: ls -R ./npm
         shell: bash
+      - name: Capture package version
+        id: set-version
+        shell: bash
+        run: |
+          VERSION=$(node -p 'require("./package.json").version')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # Pre-releases (e.g. 0.2.0-beta.1) are published under their identifier (e.g. "beta") instead of "latest"
+          if [[ "$VERSION" == *-* ]]; then
+            TAG=$(echo "${VERSION#*-}" | sed -E 's/[^a-zA-Z].*$//')
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "tag=${TAG:-next}" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
       - name: Publish
         run: |
           npm config set provenance true
@@ -59,12 +75,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Capture package version
-        id: set-version
-        shell: bash
-        run: |
-          VERSION=$(node -p 'require("./package.json").version')
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # Also applies to the platform packages published by napi prepublish
+          NPM_CONFIG_TAG: ${{ steps.set-version.outputs.tag }}
 
   release:
     name: Create release
@@ -74,17 +86,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - name: Generate a changelog
-        uses: orhun/git-cliff-action@v4
-        id: git-cliff
-        with:
-          config: cliff.toml
-          args: --unreleased --strip all --ignore-tags="(py|rs)-*" --include-path="./davey-node/**" --include-path="./davey/**"
-        env:
-          OUTPUT: davey-node/CHANGELOG.md
-          GITHUB_REPO: ${{ github.repository }}
+      - name: Pull changelog
+        run: .github/scripts/changelog-section.sh davey-node/CHANGELOG.md "${{ needs.publish.outputs.version }}" > "$RUNNER_TEMP/release-notes.md"
 
       - name: Create release
         uses: softprops/action-gh-release@v3
@@ -92,4 +95,5 @@ jobs:
           tag_name: "js-${{ needs.publish.outputs.version }}"
           name: "davey-node@${{ needs.publish.outputs.version }}"
           target_commitish: ${{ github.sha }}
-          body_path: davey-node/CHANGELOG.md
+          body_path: ${{ runner.temp }}/release-notes.md
+          prerelease: ${{ needs.publish.outputs.prerelease }}

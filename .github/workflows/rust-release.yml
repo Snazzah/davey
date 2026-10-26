@@ -23,6 +23,7 @@ jobs:
     needs: [test]
     outputs:
       version: ${{ steps.get_version.outputs.current_version }}
+      prerelease: ${{ steps.get_version.outputs.prerelease }}
     defaults:
       run:
         working-directory: davey
@@ -34,6 +35,7 @@ jobs:
         run: |
           VERSION=$(grep '^version\s*=\s*"' Cargo.toml | head -n1 | sed -E 's/version\s*=\s*"([^"]+)"/\1/')
           echo "current_version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *-* ]]; then echo "prerelease=true"; else echo "prerelease=false"; fi >> "$GITHUB_OUTPUT"
 
   publish:
     name: Publish crate
@@ -84,3 +86,4 @@ jobs:
           name: "davey@${{ needs.get_version.outputs.version }}"
           target_commitish: ${{ github.sha }}
           body_path: davey/CHANGELOG.md
+          prerelease: ${{ needs.get_version.outputs.prerelease }}
