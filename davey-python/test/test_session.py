@@ -67,14 +67,13 @@ def create_session(status: davey.SessionStatus = davey.SessionStatus.inactive):
         return session
 
     # awaiting_response
-    session.process_proposals(davey.ProposalsOperationType.append, APPENDING_PROPOSALS)
+    cw = session.process_proposals(
+        davey.ProposalsOperationType.append, APPENDING_PROPOSALS
+    )
     if status == davey.SessionStatus.awaiting_response:
         return session
 
     # active
-    cw = session.process_proposals(
-        davey.ProposalsOperationType.append, APPENDING_PROPOSALS
-    )
     if cw is None:
         pytest.skip(
             "Could not obtain commit from proposals; skipping active session setup."
