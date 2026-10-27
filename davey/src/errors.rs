@@ -268,7 +268,6 @@ pub enum TransitionError {
 }
 
 #[derive(Error, Debug)]
-#[non_exhaustive]
 pub enum EncryptError {
   #[error("session is not ready to encrypt packets")]
   NotReady,
