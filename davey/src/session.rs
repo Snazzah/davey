@@ -527,7 +527,7 @@ impl DaveSession {
       self.pending_commit_bytes = None;
       if self.status == SessionStatus::AWAITING_RESPONSE {
         self.status = {
-          if self.is_ready {
+          if group.epoch().as_u64() != 0 {
             SessionStatus::ACTIVE
           } else {
             SessionStatus::PENDING
