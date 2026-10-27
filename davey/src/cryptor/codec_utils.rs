@@ -313,19 +313,19 @@ pub fn process_frame_av1(processor: &mut OutboundFrameProcessor, frame: &[u8]) -
         warn!("Malformed AV1 frame: invalid LEB128 size");
         return false;
       };
-      obu_payload_size = obu_payload_size_explicit as usize;
       i += leb128_size;
+
+      if obu_payload_size_explicit > (frame.len() - i) as u64 {
+        warn!("Malformed AV1 frame: payload overflows frame");
+        return false;
+      }
+      obu_payload_size = obu_payload_size_explicit as usize;
     } else {
       // If the size is not present, the OBU extends to the end of the frame.
       obu_payload_size = frame.len() - i;
     }
 
     let obu_payload_index = i;
-
-    if i + obu_payload_size > frame.len() {
-      warn!("Malformed AV1 frame: payload overflows frame");
-      return false;
-    }
 
     i += obu_payload_size;
 

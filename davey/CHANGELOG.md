@@ -30,6 +30,7 @@ All notable changes to this project will be documented in this file.
 - Missing nonces that arrive early are now tracked. (ref: https://github.com/discord/libdave/commit/65be1a4476e41219b536dba15ab919f66b2a63b4)
 - Missing nonces are now limited to 1000 tracked nonces instead of a window of the last 1000 nonces, so older frames can still be decrypted. (ref: https://github.com/discord/libdave/commit/3bdd9fdf1c45b29d45b62e4b228ce627f9b9f707)
 - Fixed LEB128 not being read correctly in some cases.
+- LEB128 sizes that don't fit in the frame or `usize` are now rejected. (ref: https://github.com/discord/libdave/commit/7cb36a39a1a215be986e42ebb048d3509c49ca95)
 - `DecryptionStats::attempts` now only counts actual decryption attempts, not every key ratchet that was tried. (parity with libdave)
 - Duplicate key ratchet installs are now ignored. (ref: https://github.com/discord/libdave/commit/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169)
 - Re-installing the encryption key of the current epoch no longer restarts the nonce sequence, which reused nonces. (ref: https://github.com/discord/libdave/commit/d3bac61ff5f0541af3e6751de34b3d5d48349eed)

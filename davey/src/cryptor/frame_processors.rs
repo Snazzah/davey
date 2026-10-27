@@ -72,10 +72,11 @@ pub fn deserialize_unencrypted_ranges(
       return None;
     }
 
-    unencrypted_ranges.push(Range {
-      offset: offset as usize,
-      size: size as usize,
-    });
+    let (Ok(offset), Ok(size)) = (usize::try_from(offset), usize::try_from(size)) else {
+      unencrypted_ranges.clear();
+      return None;
+    };
+    unencrypted_ranges.push(Range { offset, size });
   }
 
   Some(bytes_read as u8)
