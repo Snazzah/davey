@@ -31,8 +31,6 @@ pub struct EncryptionStats {
   pub max_attempts: u64,
   /// Number of encryptions that failed due to a missing key
   pub missing_keys: u64,
-  /// Total amounts of packets that passed through
-  pub passthroughs: u64,
 }
 
 pub struct Encryptor {
@@ -57,7 +55,6 @@ impl Encryptor {
         attempts: 0,
         max_attempts: 0,
         missing_keys: 0,
-        passthroughs: 0,
       },
     );
     stats.insert(
@@ -69,7 +66,6 @@ impl Encryptor {
         attempts: 0,
         max_attempts: 0,
         missing_keys: 0,
-        passthroughs: 0,
       },
     );
 

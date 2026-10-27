@@ -14,8 +14,7 @@ All notable changes to this project will be documented in this file.
 - `DAVESession#processWelcome` now has an optional `recognizedUserIds` argument that gets checked against the users in the welcome group. (parity with [libdave v1.2.0](https://github.com/discord/libdave/releases/tag/v1.2.0/cpp))
 - `DAVESession#prepareTransition` and `DAVESession#executeTransition` for handling opcodes 21 and 22. Preparing a downgrade to protocol version 0 keeps the current decryption keys usable for 10 seconds.
 - `DAVESession#canEncrypt` to check whether the session has a key to encrypt with.
-- `EncryptionStats#missingKeys` for the number of encryptions that failed due to a missing key. (parity with libdave)
-- `EncryptionStats#passthroughs` for the number of Opus silence packets that passed through. Opus silence packets are now also counted in `DecryptionStats#passthroughs`. (parity with libdave)
+- `EncryptionStats#missingKeys` and `DecryptionStats#missingKeys` for the number of encryptions and decryptions that failed due to a missing key, and `DecryptionStats#invalidNonces` for the number of decryptions that failed due to an invalid nonce.
 
 ### Fixed:
 
@@ -27,6 +26,7 @@ All notable changes to this project will be documented in this file.
 - Missing nonces that arrive early are now tracked. (https://github.com/discord/libdave/commit/65be1a4476e41219b536dba15ab919f66b2a63b4)
 - Missing nonces are now limited to 1000 tracked nonces instead of a window of the last 1000 nonces, so older frames can still be decrypted. (https://github.com/discord/libdave/commit/3bdd9fdf1c45b29d45b62e4b228ce627f9b9f707)
 - Fixed LEB128 not being read correctly in some cases.
+- `DecryptionStats#attempts` now only counts actual decryption attempts, not every key ratchet that was tried. (parity with libdave)
 - Duplicate key ratchet installs are now ignored. (https://github.com/discord/libdave/commit/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169)
 - Re-installing the encryption key of the current epoch no longer restarts the nonce sequence, which reused nonces. (https://github.com/discord/libdave/commit/d3bac61ff5f0541af3e6751de34b3d5d48349eed)
 - Duplicate user IDs are now rejected in proposals, welcomes and commits. (parity with libdave)

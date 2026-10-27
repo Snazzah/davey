@@ -40,8 +40,6 @@ pub struct EncryptionStats {
   pub max_attempts: i64,
   /// Number of encryptions that failed due to a missing key
   pub missing_keys: i64,
-  /// Total amounts of packets that passed through
-  pub passthroughs: i64,
 }
 
 impl From<&davey::EncryptionStats> for EncryptionStats {
@@ -53,7 +51,6 @@ impl From<&davey::EncryptionStats> for EncryptionStats {
       attempts: stat_to_number(stats.attempts),
       max_attempts: stat_to_number(stats.max_attempts),
       missing_keys: stat_to_number(stats.missing_keys),
-      passthroughs: stat_to_number(stats.passthroughs),
     }
   }
 }
@@ -68,6 +65,10 @@ pub struct DecryptionStats {
   pub duration: i64,
   /// Total amounts of decryption attempts
   pub attempts: i64,
+  /// Number of decryptions that failed due to a missing key
+  pub missing_keys: i64,
+  /// Number of decryptions that failed due to an invalid nonce
+  pub invalid_nonces: i64,
   /// Total amounts of packets that passed through
   pub passthroughs: i64,
 }
@@ -79,6 +80,8 @@ impl From<&davey::DecryptionStats> for DecryptionStats {
       failures: stat_to_number(stats.failures),
       duration: stat_to_number(stats.duration),
       attempts: stat_to_number(stats.attempts),
+      missing_keys: stat_to_number(stats.missing_keys),
+      invalid_nonces: stat_to_number(stats.invalid_nonces),
       passthroughs: stat_to_number(stats.passthroughs),
     }
   }

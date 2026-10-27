@@ -264,10 +264,9 @@ def test_encrypt_decrypt_silence_frame_passthrough():
         session.decrypt(OTHER_USER_ID, davey.MediaType.audio, SILENCE_FRAME)
         == SILENCE_FRAME
     )
-    assert session.get_encryption_stats().passthroughs == 1
     stats = session.get_decryption_stats(OTHER_USER_ID)
     assert stats is not None
-    assert stats.passthroughs == 1
+    assert stats.passthroughs == 0
 
 
 def test_get_encryption_and_decryption_stats():
@@ -279,12 +278,13 @@ def test_get_encryption_and_decryption_stats():
     assert enc_stats.attempts == 0
     assert enc_stats.max_attempts == 0
     assert enc_stats.missing_keys == 0
-    assert enc_stats.passthroughs == 0
 
     dec_stats = session.get_decryption_stats(OTHER_USER_ID)
     assert dec_stats is not None
     assert dec_stats.successes == 0
     assert dec_stats.failures == 0
     assert dec_stats.duration == 0
-    assert dec_stats.passthroughs == 0
     assert dec_stats.attempts == 0
+    assert dec_stats.missing_keys == 0
+    assert dec_stats.invalid_nonces == 0
+    assert dec_stats.passthroughs == 0

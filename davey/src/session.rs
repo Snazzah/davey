@@ -978,12 +978,6 @@ impl DaveSession {
     // Return the packet back to the client (passthrough) if the packet is an opus silence packet
     // This may change in the future, see: https://daveprotocol.com/#silence-packets
     if codec == Codec::OPUS && packet == OPUS_SILENCE_PACKET {
-      self
-        .encryptor
-        .stats
-        .get_mut(&media_type)
-        .unwrap()
-        .passthroughs += 1;
       return Ok(Cow::Borrowed(packet));
     }
 
@@ -1008,12 +1002,6 @@ impl DaveSession {
     // Return the packet back to the client (passthrough) if the packet is an opus silence packet
     // This may change in the future, see: https://daveprotocol.com/#silence-packets
     if codec == Codec::OPUS && packet == OPUS_SILENCE_PACKET {
-      self
-        .encryptor
-        .stats
-        .get_mut(&media_type)
-        .unwrap()
-        .passthroughs += 1;
       encrypted_packet.clear();
       encrypted_packet.extend_from_slice(packet);
       return Ok(());

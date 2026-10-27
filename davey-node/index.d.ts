@@ -211,6 +211,10 @@ export interface DecryptionStats {
   duration: number
   /** Total amounts of decryption attempts */
   attempts: number
+  /** Number of decryptions that failed due to a missing key */
+  missingKeys: number
+  /** Number of decryptions that failed due to an invalid nonce */
+  invalidNonces: number
   /** Total amounts of packets that passed through */
   passthroughs: number
 }
@@ -228,8 +232,6 @@ export interface EncryptionStats {
   maxAttempts: number
   /** Number of encryptions that failed due to a missing key */
   missingKeys: number
-  /** Total amounts of packets that passed through */
-  passthroughs: number
 }
 
 /**

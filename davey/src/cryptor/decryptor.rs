@@ -25,6 +25,10 @@ pub struct DecryptionStats {
   pub duration: u64,
   /// Total amounts of decryption attempts
   pub attempts: u64,
+  /// Number of decryptions that failed due to a missing key
+  pub missing_keys: u64,
+  /// Number of decryptions that failed due to an invalid nonce
+  pub invalid_nonces: u64,
   /// Total amounts of packets that passed through
   pub passthroughs: u64,
 }
@@ -51,6 +55,8 @@ impl Decryptor {
         failures: 0,
         duration: 0,
         attempts: 0,
+        missing_keys: 0,
+        invalid_nonces: 0,
         passthroughs: 0,
       },
     );
@@ -61,6 +67,8 @@ impl Decryptor {
         failures: 0,
         duration: 0,
         attempts: 0,
+        missing_keys: 0,
+        invalid_nonces: 0,
         passthroughs: 0,
       },
     );
@@ -87,7 +95,6 @@ impl Decryptor {
     if media_type == MediaType::AUDIO && encrypted_frame == OPUS_SILENCE_PACKET {
       let copy_size = min(frame.len(), encrypted_frame.len());
       frame[..copy_size].copy_from_slice(&encrypted_frame[..copy_size]);
-      self.stats.get_mut(&media_type).unwrap().passthroughs += 1;
       return Ok(copy_size);
     }
 
@@ -118,27 +125,37 @@ impl Decryptor {
       return Err(DecryptorDecryptError::UnencryptedWhenPassthroughDisabled);
     }
 
-    let success = self
-      .cryptor_managers
-      .iter_mut()
-      .rev()
-      .any(|cryptor_manager| {
-        stats.attempts += 1;
+    // Try and decrypt with each valid cryptor
+    // reverse iterate to try the newest cryptors first
+    let mut result = Err(DecryptorDecryptError::MissingKeyRatchet);
+    for cryptor_manager in self.cryptor_managers.iter_mut().rev() {
+      result = Self::decrypt_impl(cryptor_manager, &mut local_frame, stats);
+      if result.is_ok() {
+        break;
+      }
+    }
 
-        Self::decrypt_impl(cryptor_manager, &mut local_frame)
-      });
+    let result = match result {
+      Ok(()) => {
+        stats.successes += 1;
+        Ok(local_frame.reconstruct_frame(frame))
+      }
+      Err(err) => {
+        stats.failures += 1;
+        warn!(
+          "decryption failed, no valid cryptor found, type: {media_type:?}, encrypted frame size: {}, plaintext frame size: {}, number of cryptor managers: {}",
+          encrypted_frame.len(),
+          frame.len(),
+          self.cryptor_managers.len()
+        );
 
-    let result = if success {
-      stats.successes += 1;
-      Ok(local_frame.reconstruct_frame(frame))
-    } else {
-      stats.failures += 1;
-      Err(DecryptorDecryptError::NoValidCryptorFound {
-        media_type,
-        encrypted_size: encrypted_frame.len(),
-        plaintext_size: frame.len(),
-        manager_count: self.cryptor_managers.len(),
-      })
+        match err {
+          DecryptorDecryptError::InvalidNonce => stats.invalid_nonces += 1,
+          DecryptorDecryptError::MissingKeyRatchet => stats.missing_keys += 1,
+          _ => {}
+        }
+        Err(err)
+      }
     };
 
     let stats = self.stats.get_mut(&media_type).unwrap();
@@ -153,7 +170,8 @@ impl Decryptor {
   fn decrypt_impl(
     cipher_manager: &mut CipherManager,
     encrypted_frame: &mut InboundFrameProcessor,
-  ) -> bool {
+    stats: &mut DecryptionStats,
+  ) -> Result<(), DecryptorDecryptError> {
     // expand the truncated nonce to the full sized one needed for decryption
     let mut nonce_buffer = [0u8; AES_GCM_128_NONCE_BYTES];
     nonce_buffer[AES_GCM_128_TRUNCATED_SYNC_NONCE_OFFSET
@@ -164,20 +182,20 @@ impl Decryptor {
       .compute_wrapped_generation(encrypted_frame.truncated_nonce >> RATCHET_GENERATION_SHIFT_BITS);
     if !cipher_manager.can_process_nonce(generation, encrypted_frame.truncated_nonce) {
       trace!("decryption failed, cannot process nonce");
-      return false;
+      return Err(DecryptorDecryptError::InvalidNonce);
     }
 
     let mut cipher = cipher_manager.get_cipher(generation);
 
     if cipher.is_none() {
       warn!("decryption failed, no cryptor found for generation {generation}");
-      return false;
+      return Err(DecryptorDecryptError::MissingCryptor);
     }
 
     // plaintext should be resized properly already
     if encrypted_frame.plaintext.len() != encrypted_frame.ciphertext.len() {
       warn!("decryption failed, ciphertext mismatch (internal error!)");
-      return false;
+      return Err(DecryptorDecryptError::DecryptionFailure);
     }
     encrypted_frame
       .plaintext
@@ -189,13 +207,14 @@ impl Decryptor {
       &encrypted_frame.authenticated,
       &encrypted_frame.tag,
     );
-    let success = result.is_ok();
+    stats.attempts += 1;
 
-    if success {
-      cipher_manager.report_cipher_success(generation, encrypted_frame.truncated_nonce);
+    if result.is_err() {
+      return Err(DecryptorDecryptError::DecryptionFailure);
     }
 
-    success
+    cipher_manager.report_cipher_success(generation, encrypted_frame.truncated_nonce);
+    Ok(())
   }
 
   pub fn transition_to_key_ratchet(&mut self, ratchet: HashRatchet) {

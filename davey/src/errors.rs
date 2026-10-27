@@ -11,7 +11,7 @@ use openmls::{
 use openmls_rust_crypto::MemoryStorageError;
 use thiserror::Error;
 
-use crate::{cryptor::MediaType, displayable_code::MAX_GROUP_SIZE, session::DAVE_PROTOCOL_VERSION};
+use crate::{displayable_code::MAX_GROUP_SIZE, session::DAVE_PROTOCOL_VERSION};
 
 #[derive(Error, Debug)]
 pub enum DisplayableCodeError {
@@ -307,15 +307,14 @@ pub struct NoDecryptorForUser;
 pub enum DecryptorDecryptError {
   #[error("provided frame was unencrypted when passthrough mode was disabled")]
   UnencryptedWhenPassthroughDisabled,
-  #[error(
-    "no valid cryptor manager could be found for {media_type:?}, encrypted size: {encrypted_size}, plaintext size: {plaintext_size}, num of managers: {manager_count})"
-  )]
-  NoValidCryptorFound {
-    media_type: MediaType,
-    encrypted_size: usize,
-    plaintext_size: usize,
-    manager_count: usize,
-  },
+  #[error("no key ratchet to decrypt with")]
+  MissingKeyRatchet,
+  #[error("nonce could not be processed")]
+  InvalidNonce,
+  #[error("failed to get a cryptor for the frame's key generation")]
+  MissingCryptor,
+  #[error("failed to decrypt frame")]
+  DecryptionFailure,
 }
 
 #[derive(Debug, Error)]

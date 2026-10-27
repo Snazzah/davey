@@ -129,8 +129,6 @@ class EncryptionStats:
     """Maximum attempts reached at encryption"""
     missing_keys: int
     """Number of encryptions that failed due to a missing key"""
-    passthroughs: int
-    """Total amounts of packets that passed through"""
 
 class DecryptionStats:
     successes: int
@@ -141,6 +139,10 @@ class DecryptionStats:
     """Total decryption duration in microseconds"""
     attempts: int
     """Total amounts of decryption attempts"""
+    missing_keys: int
+    """Number of decryptions that failed due to a missing key"""
+    invalid_nonces: int
+    """Number of decryptions that failed due to an invalid nonce"""
     passthroughs: int
     """Total amounts of packets that passed through"""
 

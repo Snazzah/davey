@@ -292,13 +292,12 @@ const createSession = (status: SessionStatus = SessionStatus.INACTIVE) => {
   test('encrypt() returns silence frame when given one', (t) => {
     const session = createSession(SessionStatus.ACTIVE);
     t.deepEqual(session.encryptOpus(SILENCE_FRAME), SILENCE_FRAME);
-    t.is(session.getEncryptionStats()?.passthroughs, 1);
   });
 
   test('decrypt() returns silence frame when given one', (t) => {
     const session = createSession(SessionStatus.ACTIVE);
     t.deepEqual(session.decrypt(OTHER_USER_ID, MediaType.AUDIO, SILENCE_FRAME), SILENCE_FRAME);
-    t.is(session.getDecryptionStats(OTHER_USER_ID)?.passthroughs, 1);
+    t.is(session.getDecryptionStats(OTHER_USER_ID)?.passthroughs, 0);
   });
 }
 
@@ -306,12 +305,12 @@ const createSession = (status: SessionStatus = SessionStatus.INACTIVE) => {
 {
   test('getEncryptionStats() returns stats', (t) => {
     const session = createSession(SessionStatus.ACTIVE);
-    t.deepEqual(session.getEncryptionStats(), { successes: 0, failures: 0, duration: 0, attempts: 0, maxAttempts: 0, missingKeys: 0, passthroughs: 0 });
+    t.deepEqual(session.getEncryptionStats(), { successes: 0, failures: 0, duration: 0, attempts: 0, maxAttempts: 0, missingKeys: 0 });
   });
 
   test('getDecryptionStats() returns stats', (t) => {
     const session = createSession(SessionStatus.ACTIVE);
-    t.deepEqual(session.getDecryptionStats(OTHER_USER_ID), { successes: 0, failures: 0, duration: 0, passthroughs: 0, attempts: 0 });
+    t.deepEqual(session.getDecryptionStats(OTHER_USER_ID), { successes: 0, failures: 0, duration: 0, attempts: 0, missingKeys: 0, invalidNonces: 0, passthroughs: 0 });
   });
 }
 
