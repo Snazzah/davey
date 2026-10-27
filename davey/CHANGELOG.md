@@ -12,7 +12,6 @@ All notable changes to this project will be documented in this file.
 - `EncryptionStats` and `DecryptionStats` fields are now `u64`. (parity with libdave)
 - `EncryptError::EncryptionFailed` now contains an `EncryptorEncryptError`.
 - `DecryptorDecryptError::NoValidCryptorFound` was replaced with more specific errors: `MissingKeyRatchet`, `InvalidNonce`, `MissingCryptor` and `DecryptionFailure`.
-- `ProcessProposalsError`, `ProcessWelcomeError`, `ProcessCommitError`, `DecryptError` and `DecryptorDecryptError` are now non-exhaustive.
 
 ### Added:
 
