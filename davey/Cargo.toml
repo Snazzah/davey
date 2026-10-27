@@ -1,6 +1,6 @@
 [package]
 name = "davey"
-version = "0.2.0-beta"
+version = "0.2.0-beta.1"
 description = "A Rust implementation of Discord Audio & Video End-to-End Encryption (DAVE) Protocol"
 license = "MIT"
 homepage = "https://github.com/Snazzah/davey"

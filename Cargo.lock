@@ -266,7 +266,7 @@ dependencies = [
 
 [[package]]
 name = "davey"
-version = "0.2.0-beta"
+version = "0.2.0-beta.1"
 dependencies = [
  "aead",
  "aes",
@@ -294,7 +294,7 @@ dependencies = [
 
 [[package]]
 name = "davey-python"
-version = "0.2.0-beta"
+version = "0.2.0-beta.1"
 dependencies = [
  "davey",
  "pyo3",
