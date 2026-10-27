@@ -663,13 +663,17 @@ impl DaveSession {
   /// Process a commit from [dave_mls_announce_commit_transition (29)](https://daveprotocol.com/#dave_mls_announce_commit_transition-29).
   /// Afterwards, prepare the transition with [Self::prepare_transition] to start using the new keys.
   /// Send a [dave_mls_invalid_commit_welcome (31)](https://daveprotocol.com/#dave_mls_invalid_commit_welcome-31) if the commit couldn't be processed.
-  pub fn process_commit(&mut self, commit: &[u8]) -> Result<(), ProcessCommitError> {
+  ///
+  /// Returns `true` if the transition should be prepared, or `false` if the commit was ignored.
+  pub fn process_commit(&mut self, commit: &[u8]) -> Result<bool, ProcessCommitError> {
     let Some(group) = &mut self.group else {
-      return Err(ProcessCommitError::NoGroup);
+      warn!("Ignoring commit without a group");
+      return Ok(false);
     };
 
     if self.status == SessionStatus::PENDING {
-      return Err(ProcessCommitError::PendingGroup);
+      warn!("Ignoring commit for a pending group without queued proposals");
+      return Ok(false);
     }
 
     if group.pending_proposals().next().is_none() {
@@ -744,7 +748,7 @@ impl DaveSession {
     );
     self.status = SessionStatus::ACTIVE;
 
-    Ok(())
+    Ok(true)
   }
 
   /// Prepare for a transition from [dave_protocol_prepare_transition (21)](https://daveprotocol.com/#dave_protocol_prepare_transition-21).

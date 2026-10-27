@@ -118,7 +118,7 @@ fn establish_group(
   joiner: &mut DaveSession,
 ) {
   let commit_welcome = propose_add_and_commit(external_sender, creator, joiner);
-  creator.process_commit(&commit_welcome.commit).unwrap();
+  assert!(creator.process_commit(&commit_welcome.commit).unwrap());
   joiner
     .process_welcome(
       &commit_welcome
@@ -156,7 +156,7 @@ fn join_via_commit_and_welcome() {
   let commit_welcome = propose_add_and_commit(&external_sender, &mut a, &mut b);
 
   // the creator processes its own group-initialization commit
-  a.process_commit(&commit_welcome.commit).unwrap();
+  assert!(a.process_commit(&commit_welcome.commit).unwrap());
   assert_eq!(a.get_user_ids().unwrap().len(), 2);
 
   b.process_welcome(
@@ -259,7 +259,7 @@ fn own_commit_must_match_prepared_commit() {
   )
   .unwrap()
   .expect("a commit should be produced");
-  b.process_commit(&first_commit).unwrap();
+  assert!(b.process_commit(&first_commit).unwrap());
   let user_ids_b: HashSet<u64> = b.get_user_ids().unwrap().into_iter().collect();
   assert_eq!(user_ids_b, HashSet::from([USER_A, USER_B, USER_C]));
 
@@ -303,11 +303,11 @@ fn own_latest_prepared_commit_uses_cached_state() {
   )
   .unwrap()
   .expect("a commit should be produced");
-  b.process_commit(&second_commit).unwrap();
+  assert!(b.process_commit(&second_commit).unwrap());
   let user_ids_b: HashSet<u64> = b.get_user_ids().unwrap().into_iter().collect();
   assert_eq!(user_ids_b, HashSet::from([USER_A, USER_B, USER_C, USER_D]));
 
-  a.process_commit(&second_commit).unwrap();
+  assert!(a.process_commit(&second_commit).unwrap());
   let user_ids_a: HashSet<u64> = a.get_user_ids().unwrap().into_iter().collect();
   assert_eq!(user_ids_a, user_ids_b);
 
@@ -328,7 +328,7 @@ fn commit_without_queued_proposals_fails() {
 
   let commit_welcome = propose_add_and_commit(&external_sender, &mut a, &mut b);
 
-  a.process_commit(&commit_welcome.commit).unwrap();
+  assert!(a.process_commit(&commit_welcome.commit).unwrap());
 
   // a is in an established group with no queued proposals; a replayed commit
   // is a hard failure that should request a reset, not a silent ignore
@@ -340,9 +340,6 @@ fn commit_without_queued_proposals_fails() {
 }
 
 /// libdave: [`MlsSessionTests.SessionCommitWithoutAnyStateIsIgnored`](https://github.com/discord/libdave/blob/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169/cpp/test/mls_session_tests.cpp#L204)
-///
-/// libdave returns `ignored_t` (as opposed to `failed_t`) here so the caller doesn't request a
-/// reset; davey returns the distinguishable [`ProcessCommitError::NoGroup`] error instead.
 #[test]
 fn commit_without_any_state_is_ignored() {
   let external_sender = TestExternalSender::new(TEST_GROUP_ID);
@@ -354,10 +351,7 @@ fn commit_without_any_state_is_ignored() {
   // a session with no pending or established state ignores in-flight commits
   // (e.g. during a reset) instead of failing and causing thrashing
   let mut fresh = DaveSession::new(TEST_PROTOCOL_VERSION, USER_C, TEST_GROUP_ID, None).unwrap();
-  assert!(matches!(
-    fresh.process_commit(&commit_welcome.commit),
-    Err(ProcessCommitError::NoGroup)
-  ));
+  assert!(!fresh.process_commit(&commit_welcome.commit).unwrap());
 }
 
 /// libdave: [`MlsSessionTests.SessionSetExternalSenderAfterJoinReportsError`](https://github.com/discord/libdave/blob/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169/cpp/test/mls_session_tests.cpp#L223)
@@ -369,7 +363,7 @@ fn set_external_sender_after_join_reports_error() {
 
   let commit_welcome = propose_add_and_commit(&external_sender, &mut a, &mut b);
 
-  a.process_commit(&commit_welcome.commit).unwrap();
+  assert!(a.process_commit(&commit_welcome.commit).unwrap());
 
   assert!(matches!(
     a.set_external_sender(&external_sender.marshalled_external_sender()),

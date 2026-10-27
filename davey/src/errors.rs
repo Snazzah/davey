@@ -171,10 +171,6 @@ pub enum ProcessWelcomeError {
 
 #[derive(Error, Debug)]
 pub enum ProcessCommitError {
-  #[error("cannot process commit without a group")]
-  NoGroup,
-  #[error("cannot process commit for a pending group")]
-  PendingGroup,
   #[error("cannot process commit without queued proposals")]
   NoQueuedProposals,
   #[error("failed to deserialize message: {0}")]

@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - `DaveSession::process_commit` and `DaveSession::process_welcome` no longer update keys. Call `DaveSession::prepare_transition` with the transition ID and `protocol_version` afterwards, and the key used to encrypt packets is only switched once that transition is executed with `DaveSession::execute_transition`, unless the transition ID is 0. (parity with [libdave's sample](https://github.com/discord/libdave/blob/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169/samples/typescript/DaveSessionManager.ts#L85-L114))
 - `DaveSession::reinit` now keeps the current encryption and decryption keys until the next transition replaces them, so `is_ready` stays `true`. (parity with libdave)
+- `DaveSession::process_commit` now returns `true` if the transition should be prepared, or `false` if the commit was ignored because there is no established group or queued proposals, instead of failing with `NoGroup` or `PendingGroup`. (ref: https://github.com/discord/libdave/commit/68f7c021ceed7556fc3bc708f59d7c7ac23c827d)
 - `DaveSession::process_welcome` now takes a `recognized_user_ids` argument that gets checked against the users in the welcome group. (parity with [libdave v1.2.0](https://github.com/discord/libdave/releases/tag/v1.2.0/cpp))
 - `EncryptionStats` and `DecryptionStats` fields are now `u64`. (parity with libdave)
 - `EncryptError::EncryptionFailed` now contains an `EncryptorEncryptError`.

@@ -197,13 +197,11 @@ impl DaveSession {
     Ok(())
   }
 
-  fn process_commit(&mut self, commit: &[u8]) -> PyResult<()> {
+  fn process_commit(&mut self, commit: &[u8]) -> PyResult<bool> {
     self
       .inner
       .process_commit(commit)
-      .map_err(|err| py_value_error!("Failed to process commit: {err:?}"))?;
-
-    Ok(())
+      .map_err(|err| py_value_error!("Failed to process commit: {err:?}"))
   }
 
   fn prepare_transition(&mut self, transition_id: u16, protocol_version: u16) -> PyResult<()> {

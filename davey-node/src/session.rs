@@ -354,16 +354,15 @@ impl DaveSession {
 
   /// Process a commit. Afterwards, prepare the transition with {@link prepareTransition} to start using the new keys.
   /// @param commit The commit to process.
+  /// @returns Whether the transition should be prepared.
   /// @throws Will throw an error if the commit is invalid. Send an [opcode 31: dave_mls_invalid_commit_welcome](https://daveprotocol.com/#dave_mls_invalid_commit_welcome-31) if this occurs.
   /// @see https://daveprotocol.com/#dave_mls_announce_commit_transition-29
   #[napi]
-  pub fn process_commit(&mut self, commit: Buffer) -> napi::Result<()> {
+  pub fn process_commit(&mut self, commit: Buffer) -> napi::Result<bool> {
     self
       .inner
       .process_commit(&commit)
-      .map_err(|err| napi_error!("Failed to process commit: {err:?}"))?;
-
-    Ok(())
+      .map_err(|err| napi_error!("Failed to process commit: {err:?}"))
   }
 
   /// Prepare for a transition. This should be called after successfully processing a commit or welcome.

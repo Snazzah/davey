@@ -198,16 +198,16 @@ const createSession = (status: SessionStatus = SessionStatus.INACTIVE) => {
     const session = createSession(SessionStatus.PENDING);
 
     const { commit } = session.processProposals(ProposalsOperationType.APPEND, APPENDING_PROPOSALS);
-    t.notThrows(() => session.processCommit(commit!));
+    t.true(session.processCommit(commit!));
     t.is(session.status, SessionStatus.ACTIVE);
     t.notThrows(() => session.prepareTransition(0, session.protocolVersion));
     t.true(session.ready);
   });
 
-  test('processCommit() throws on non-awaiting session', (t) => {
+  test('processCommit() ignores commits on non-awaiting session', (t) => {
     // Should probably have *valid* commits here
-    t.throws(() => createSession(SessionStatus.INACTIVE).processCommit(EMPTY_BUFFER));
-    t.throws(() => createSession(SessionStatus.PENDING).processCommit(EMPTY_BUFFER));
+    t.false(createSession(SessionStatus.INACTIVE).processCommit(EMPTY_BUFFER));
+    t.false(createSession(SessionStatus.PENDING).processCommit(EMPTY_BUFFER));
   });
 
   test('processCommit() throws on invalid commit', (t) => {

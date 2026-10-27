@@ -165,7 +165,8 @@ Here's where you actually process those commits you've made. It can either be yo
 ```ts
 const transitionId = message.readUInt16BE(3);
 try {
-	this.daveSession.processCommit(message.subarray(5));
+	// The commit is ignored if there's no established group or queued proposals (e.g. while resetting)
+	if (!this.daveSession.processCommit(message.subarray(5))) return;
 	// Prepare the new keys, these are used once the transition is executed (or right away for transition ID 0)
 	this.daveSession.prepareTransition(transitionId, this.daveSession.protocolVersion);
 	// We note our pending transition because `DAVE_EXECUTE_TRANSITION` will follow

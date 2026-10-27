@@ -265,12 +265,13 @@ class DaveSession:
         :param recognized_user_ids: The recognized user IDs expected to be in the welcomed group.
         """
         ...
-    def process_commit(self, commit: bytes) -> None:
+    def process_commit(self, commit: bytes) -> bool:
         """
         Process a commit. Afterwards, prepare the transition with `prepare_transition` to start using the new keys.
         See the [DAVE Protocol Whitepaper on opcode 29](https://daveprotocol.com/#dave_mls_announce_commit_transition-29) for technical details.
 
         :param commit: The commit to process.
+        :returns: Whether the transition should be prepared.
         """
         ...
     def prepare_transition(self, transition_id: int, protocol_version: int) -> None:

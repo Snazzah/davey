@@ -117,10 +117,11 @@ export declare class DAVESession {
   /**
    * Process a commit. Afterwards, prepare the transition with {@link prepareTransition} to start using the new keys.
    * @param commit The commit to process.
+   * @returns Whether the transition should be prepared.
    * @throws Will throw an error if the commit is invalid. Send an [opcode 31: dave_mls_invalid_commit_welcome](https://daveprotocol.com/#dave_mls_invalid_commit_welcome-31) if this occurs.
    * @see https://daveprotocol.com/#dave_mls_announce_commit_transition-29
    */
-  processCommit(commit: Buffer): void
+  processCommit(commit: Buffer): boolean
   /**
    * Prepare for a transition. This should be called after successfully processing a commit or welcome.
    * @param transitionId The transition ID.

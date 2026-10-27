@@ -187,18 +187,15 @@ def test_process_commit_runs_successfully_can_process_own_commit():
         davey.ProposalsOperationType.append, APPENDING_PROPOSALS
     )
     assert cw is not None
-    # should not raise
-    session.process_commit(cw.commit)
+    assert session.process_commit(cw.commit)
     assert session.status == davey.SessionStatus.active
     session.prepare_transition(0, session.protocol_version)
     assert session.ready
 
 
-def test_process_commit_throws_on_non_awaiting_session():
-    with pytest.raises(Exception):
-        create_session(davey.SessionStatus.inactive).process_commit(EMPTY_BUFFER)
-    with pytest.raises(Exception):
-        create_session(davey.SessionStatus.pending).process_commit(EMPTY_BUFFER)
+def test_process_commit_ignores_commits_on_non_awaiting_session():
+    assert not create_session(davey.SessionStatus.inactive).process_commit(EMPTY_BUFFER)
+    assert not create_session(davey.SessionStatus.pending).process_commit(EMPTY_BUFFER)
 
 
 def test_process_commit_throws_on_invalid_commit():

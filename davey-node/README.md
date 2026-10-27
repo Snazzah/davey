@@ -28,9 +28,10 @@ session.processProposals(
   recognizedUserIds, // an array of user IDs in the session, optional but highly recommended
 );
 
-// Process a commit, then prepare its transition
-session.processCommit(commitBuffer);
-session.prepareTransition(transitionId, session.protocolVersion);
+// Process a commit, then prepare its transition if it wasn't ignored
+if (session.processCommit(commitBuffer)) {
+  session.prepareTransition(transitionId, session.protocolVersion);
+}
 
 // Process a welcome, then prepare its transition
 session.processWelcome(welcomeBuffer, recognizedUserIds);
