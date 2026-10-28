@@ -319,7 +319,7 @@ impl DaveSession {
     &mut self,
     external_sender_data: &[u8],
   ) -> Result<(), SetExternalSenderError> {
-    if self.status == SessionStatus::AWAITING_RESPONSE || self.status == SessionStatus::ACTIVE {
+    if self.has_established_group() {
       return Err(SetExternalSenderError::AlreadyInGroup);
     }
 
