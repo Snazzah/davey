@@ -282,6 +282,7 @@ dependencies = [
  "openmls",
  "openmls_basic_credential",
  "openmls_rust_crypto",
+ "openmls_traits",
  "p256",
  "pyo3",
  "rand 0.8.5",

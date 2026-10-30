@@ -8,6 +8,7 @@ use openmls::{
 };
 use openmls_basic_credential::SignatureKeyPair;
 use openmls_rust_crypto::OpenMlsRustCrypto;
+use openmls_traits::storage::StorageProvider;
 #[cfg(feature = "pyo3")]
 use pyo3::prelude::*;
 use std::{
@@ -112,6 +113,7 @@ pub struct DaveSession {
   credential_with_key: CredentialWithKey,
 
   external_sender: Option<ExternalSender>,
+  join_key_package_ref: Option<KeyPackageRef>,
   group: Option<MlsGroup>,
   pending_commit_bytes: Option<Vec<u8>>,
   status: SessionStatus,
@@ -144,6 +146,7 @@ impl DaveSession {
       signer,
       credential_with_key,
       external_sender: None,
+      join_key_package_ref: None,
       group: None,
       pending_commit_bytes: None,
       status: SessionStatus::INACTIVE,
@@ -231,6 +234,7 @@ impl DaveSession {
     // Clear storage
     self.provider.storage().values.write().unwrap().clear();
 
+    self.join_key_package_ref = None;
     self.pending_commit_bytes = None;
     self.pending_transitions.clear();
     self.status = SessionStatus::INACTIVE;
@@ -364,6 +368,21 @@ impl DaveSession {
         &self.signer,
         self.credential_with_key.clone(),
       )?;
+
+    // Only the latest key package can be used to join, so delete the previous one
+    if let Some(old_ref) = self.join_key_package_ref.take() {
+      self
+        .provider
+        .storage()
+        .delete_key_package(&old_ref)
+        .map_err(|_| KeyPackageNewError::StorageError)?;
+    }
+    self.join_key_package_ref = Some(
+      key_package
+        .key_package()
+        .hash_ref(self.provider.crypto())
+        .map_err(KeyPackageNewError::LibraryError)?,
+    );
 
     let buffer = key_package
       .key_package()
@@ -654,6 +673,7 @@ impl DaveSession {
       group.epoch().as_u64()
     );
     self.group = Some(group);
+    self.join_key_package_ref = None;
     self.pending_commit_bytes = None;
     self.status = SessionStatus::ACTIVE;
 

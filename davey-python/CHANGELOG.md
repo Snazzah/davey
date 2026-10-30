@@ -22,6 +22,7 @@ All notable changes to this project will be documented in this file.
 
 - Enabling passthrough mode now also applies to decryptors created afterwards.
 - Group IDs are now checked when processing welcomes. (parity with [libdave v1.2.0](https://github.com/discord/libdave/releases/tag/v1.2.0/cpp) & [v1.2.1](https://github.com/discord/libdave/releases/tag/v1.2.1/cpp))
+- Welcomes are now only accepted for the most recently created key package. (parity with libdave)
 - Own commits are only accepted if they exactly match the pending commit.
 - Passthrough mode can now only shorten the cipher manager expiry, not extend it. (ref: https://github.com/discord/libdave/commit/48e6232e0884e4774576184b9031c1a9ac19a604)
 - Decrypting with a newer key generation can now only shorten the expiry of older generations, not extend it. (parity with libdave)
