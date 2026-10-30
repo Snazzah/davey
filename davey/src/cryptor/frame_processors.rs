@@ -349,10 +349,7 @@ impl OutboundFrameProcessor {
       Codec::VP8 => process_frame_vp8(self, frame),
       Codec::VP9 => process_frame_vp9(self, frame),
       Codec::AV1 => process_frame_av1(self, frame),
-      _ => {
-        // TODO we dont need to but maybe add more codecs later
-        unimplemented!("h264, h265, vp8, vp9, av1 and opus are the only supported codecs currently")
-      }
+      _ => false,
     };
 
     if !success {

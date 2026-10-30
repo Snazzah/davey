@@ -36,6 +36,7 @@ All notable changes to this project will be documented in this file.
 - Welcomes are no longer lost when the members being added were proposed before the latest batch of proposals.
 - The newest key is now tried first when decrypting.
 - Only Opus audio silence packets are passed through.
+- Encrypting with an unknown codec now encrypts the full frame instead of panicking. (parity with libdave)
 - Encryption and decryption stats no longer overflow past 32-bit values.
 - Reduced buffer allocations in encryption and decryption. ([#18](https://github.com/Snazzah/davey/issues/18))
 
