@@ -61,7 +61,7 @@ jobs:
             arch: x86
             manylinux: auto
             distro: ubuntu24.04
-          - runner: ubuntu-24.04
+          - runner: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             arch: aarch64
             manylinux: auto
