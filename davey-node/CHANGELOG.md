@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 0.2.0 - 2026-11-01
+
 ### Breaking:
 
 - `DAVESession#processCommit` and `DAVESession#processWelcome` no longer update keys. Call `DAVESession#prepareTransition` with the transition ID and `protocolVersion` afterwards, and the key used to encrypt packets is only switched once that transition is executed with `DAVESession#executeTransition`, unless the transition ID is 0. (parity with [libdave's sample](https://github.com/discord/libdave/blob/8de72b1f8a2ac3c5a5270755bb8091a62e3c6169/samples/typescript/DaveSessionManager.ts#L85-L114))
