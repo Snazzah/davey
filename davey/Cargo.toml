@@ -3,7 +3,6 @@ name = "davey"
 version = "0.2.0"
 description = "A Rust implementation of Discord Audio & Video End-to-End Encryption (DAVE) Protocol"
 license = "MIT"
-homepage = "https://github.com/Snazzah/davey"
 repository = "https://github.com/Snazzah/davey"
 authors = ["Snazzah <me@snazzah.com>"]
 keywords = ["MLS", "Encryption", "E2EE", "Discord", "DAVE"]
