@@ -402,9 +402,5 @@ pub fn validate_encrypted_frame(processor: &OutboundFrameProcessor, frame: &[u8]
 
   let start = encrypted_section_start - std::cmp::min(encrypted_section_start, PADDING);
   let end = frame.len();
-  if next_h26x_nalu_index(&frame[start..end], 0).is_some() {
-    return false;
-  }
-
-  true
+  next_h26x_nalu_index(&frame[start..end], 0).is_none()
 }
