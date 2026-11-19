@@ -235,13 +235,16 @@ jobs:
             target: x64
           - runner: windows-latest
             target: x86
+            python_arch: x86
+          - runner: windows-11-arm
+            target: aarch64
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.2
       - uses: actions/setup-python@v7
         with:
           python-version: 3.x
-          architecture: ${{ matrix.platform.target }}
+          architecture: ${{ matrix.platform.python_arch }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -255,7 +258,6 @@ jobs:
           name: wheels-windows-${{ matrix.platform.target }}
           path: davey-python/dist
       - name: pytest
-        if: ${{ !startsWith(matrix.platform.target, 'aarch64') }}
         shell: bash
         run: |
           uv venv
