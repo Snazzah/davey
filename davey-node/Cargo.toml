@@ -16,4 +16,4 @@ tracing-log = "0.2.0"
 tracing = "0.1.41"
 
 [build-dependencies]
-napi-build = "2.0.1"
+napi-build = "2.6.0"
