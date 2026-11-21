@@ -98,6 +98,8 @@ jobs:
           - host: ubuntu-latest
             target: wasm32-wasip1-threads
             build: pnpm build --target wasm32-wasip1-threads
+            # rust 1.100+ links crt1-reactor.o itself, duplicating napi-build 2.3's _initialize
+            toolchain: 1.99.0
     name: stable - ${{ matrix.settings.target }} - node@20
     runs-on: ${{ matrix.settings.host }}
     steps:
@@ -115,7 +117,7 @@ jobs:
       - name: Install
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
+          toolchain: ${{ matrix.settings.toolchain || 'stable' }}
           targets: ${{ matrix.settings.target }}
       - name: Cache cargo
         uses: actions/cache@v6
