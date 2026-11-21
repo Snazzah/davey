@@ -14,7 +14,8 @@ defaults:
 jobs:
   lint_check:
     name: Lint check
-    runs-on: ubuntu-latest
+    # Ubuntu 26.04 (ubuntu-latest) has no setup-python builds for 3.8/3.9
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
@@ -44,7 +45,8 @@ jobs:
 
   type_check:
     name: Type check
-    runs-on: ubuntu-latest
+    # Ubuntu 26.04 (ubuntu-latest) has no setup-python builds for 3.8/3.9
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]

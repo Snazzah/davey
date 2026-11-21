@@ -3,7 +3,6 @@ name = "davey"
 version = "0.2.0"
 description = "A Rust implementation of Discord Audio & Video End-to-End Encryption (DAVE) Protocol"
 license = "MIT"
-homepage = "https://github.com/Snazzah/davey"
 repository = "https://github.com/Snazzah/davey"
 authors = ["Snazzah <me@snazzah.com>"]
 keywords = ["MLS", "Encryption", "E2EE", "Discord", "DAVE"]
@@ -31,7 +30,6 @@ cipher = { version = "0.4" }
 ctr = { version = "0.9" }
 ghash = { version = "0.5", default-features = false }
 subtle = { version = "2", default-features = false }
-hex-literal = { version = "0.3" }
 # NAPI
 napi-derive = { version = "3", optional = true }
 napi = { version = "3", optional = true }
