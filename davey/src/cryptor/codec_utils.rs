@@ -71,47 +71,20 @@ pub fn bytes_covering_h264_pps(payload: &[u8], size_remaining: usize) -> u16 {
 }
 
 pub fn next_h26x_nalu_index(buffer: &[u8], search_start_index: usize) -> Option<(usize, usize)> {
-  const START_CODE_HIGHEST_POSSIBLE_VALUE: u8 = 1;
-  const START_CODE_END_BYTE_VALUE: u8 = 1;
-  const START_CODE_LEADING_BYTES_VALUE: u8 = 0;
+  static START_CODE: std::sync::OnceLock<memchr::memmem::Finder<'static>> =
+    std::sync::OnceLock::new();
 
-  // we can't find the pattern with less than 3 bytes
-  if buffer.len() < NALU_SHORT_START_SEQUENCE_SIZE {
-    return None;
-  }
+  // A trailing start code without a NAL header does not start a NAL unit.
+  let search = buffer.get(search_start_index..buffer.len().checked_sub(1)?)?;
+  let finder = START_CODE.get_or_init(|| memchr::memmem::Finder::new(b"\x00\x00\x01"));
+  let index = search_start_index + finder.find(search)?;
+  let prefix_size = if index > 0 && buffer[index - 1] == 0 {
+    4
+  } else {
+    3
+  };
 
-  // look for NAL unit 3 or 4 byte start code
-  let mut i = search_start_index;
-  while i < (buffer.len() - NALU_SHORT_START_SEQUENCE_SIZE) {
-    if buffer[i + 2] > START_CODE_HIGHEST_POSSIBLE_VALUE {
-      // third byte is not 0 or 1, can't be a start code
-      i += NALU_SHORT_START_SEQUENCE_SIZE;
-    } else if buffer[i + 1] != START_CODE_LEADING_BYTES_VALUE {
-      // third byte is 0 or 1, confirmed start sequence {x, x, 0} or {x, x, 1}
-      // second byte is not 0, can't be a start code
-      i += 2;
-    } else if buffer[i] != START_CODE_LEADING_BYTES_VALUE
-      || buffer[i + 2] != START_CODE_END_BYTE_VALUE
-    {
-      // second byte is 0, confirmed start sequence {x, 0, 0} or {x, 0, 1}
-      // third byte is 0, might be a four byte start code
-      // first byte is not 0, can't be a start code
-      i += 1;
-    } else {
-      // first byte is 0, third byte is 1, confirmed start sequence {0, 0, 1}
-      let nal_unit_start_index = i + NALU_SHORT_START_SEQUENCE_SIZE;
-      if i >= 1 && buffer[i - 1] == START_CODE_LEADING_BYTES_VALUE {
-        // 4 byte start code
-        return Some((nal_unit_start_index, 4));
-      } else {
-        // 3 byte start code
-        return Some((nal_unit_start_index, 3));
-      }
-    }
-  }
-
-  // nothing found
-  None
+  Some((index + NALU_SHORT_START_SEQUENCE_SIZE, prefix_size))
 }
 
 pub fn process_frame_opus(processor: &mut OutboundFrameProcessor, frame: &[u8]) -> bool {
