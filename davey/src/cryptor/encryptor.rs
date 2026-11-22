@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Instant};
+use std::time::Instant;
 
 use tracing::{debug, warn};
 
@@ -17,7 +17,7 @@ use super::{
 };
 
 #[cfg_attr(feature = "pyo3", pyclass(get_all, from_py_object))]
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct EncryptionStats {
   /// Number of encryption successes
   pub successes: u64,
@@ -40,35 +40,11 @@ pub struct Encryptor {
   current_key_generation: u32,
   truncated_nonce: u32,
   frame_processors: Vec<OutboundFrameProcessor>,
-  pub stats: HashMap<MediaType, EncryptionStats>,
+  pub stats: [EncryptionStats; 2],
 }
 
 impl Encryptor {
   pub fn new() -> Self {
-    let mut stats = HashMap::new();
-    stats.insert(
-      MediaType::AUDIO,
-      EncryptionStats {
-        successes: 0,
-        failures: 0,
-        duration: 0,
-        attempts: 0,
-        max_attempts: 0,
-        missing_keys: 0,
-      },
-    );
-    stats.insert(
-      MediaType::VIDEO,
-      EncryptionStats {
-        successes: 0,
-        failures: 0,
-        duration: 0,
-        attempts: 0,
-        max_attempts: 0,
-        missing_keys: 0,
-      },
-    );
-
     Self {
       ratchet: None,
       key_domain_identity: None,
@@ -76,7 +52,7 @@ impl Encryptor {
       current_key_generation: 0,
       truncated_nonce: 0,
       frame_processors: Vec::new(),
-      stats,
+      stats: Default::default(),
     }
   }
 
@@ -113,7 +89,7 @@ impl Encryptor {
   ) -> Result<usize, EncryptorEncryptError> {
     if self.ratchet.is_none() {
       warn!("encryption failed, no ratchet");
-      let stats = self.stats.get_mut(media_type).unwrap();
+      let stats = &mut self.stats[*media_type as usize];
       stats.failures += 1;
       stats.missing_keys += 1;
       return Err(EncryptorEncryptError::MissingKeyRatchet);
@@ -131,7 +107,7 @@ impl Encryptor {
     );
     self.return_frame_processor(frame_processor);
 
-    let stats = self.stats.get_mut(media_type).unwrap();
+    let stats = &mut self.stats[*media_type as usize];
     stats.duration += start.elapsed().as_micros() as u64;
     if result.is_ok() {
       stats.successes += 1;
@@ -179,7 +155,7 @@ impl Encryptor {
       let (curr_cryptor, truncated_nonce) = self.get_next_cryptor_and_nonce();
 
       if curr_cryptor.is_none() {
-        self.stats.get_mut(media_type).unwrap().missing_keys += 1;
+        self.stats[*media_type as usize].missing_keys += 1;
         return Err(EncryptorEncryptError::MissingCryptor);
       }
 
@@ -204,7 +180,7 @@ impl Encryptor {
         additional_data,
       );
 
-      let stats = self.stats.get_mut(media_type).unwrap();
+      let stats = &mut self.stats[*media_type as usize];
       stats.attempts += 1;
       stats.max_attempts = stats.max_attempts.max(attempt as u64);
 

@@ -1048,10 +1048,7 @@ impl DaveSession {
 
   /// Get encryption stats.
   pub fn get_encryption_stats(&self, media_type: Option<MediaType>) -> Option<&EncryptionStats> {
-    self
-      .encryptor
-      .stats
-      .get(&media_type.unwrap_or(MediaType::AUDIO))
+    Some(&self.encryptor.stats[media_type.unwrap_or(MediaType::AUDIO) as usize])
   }
 
   /// Decrypt an end-to-end encrypted packet.
@@ -1095,7 +1092,7 @@ impl DaveSession {
       return Err(NoDecryptorForUser);
     };
 
-    Ok(decryptor.stats.get(&media_type))
+    Ok(Some(&decryptor.stats[media_type as usize]))
   }
 
   /// Get the IDs of the users in the current group. None will be returned if there is no group.
