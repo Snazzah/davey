@@ -125,6 +125,7 @@ pub struct DaveSession {
   /// Pending transition IDs mapped to their protocol version
   pending_transitions: HashMap<u16, u16>,
   passthrough_mode: bool,
+  opus_silence_passthrough: bool,
 }
 
 impl DaveSession {
@@ -156,6 +157,7 @@ impl DaveSession {
       decryptors: HashMap::new(),
       pending_transitions: HashMap::new(),
       passthrough_mode: false,
+      opus_silence_passthrough: true,
     })
   }
 
@@ -988,6 +990,13 @@ impl DaveSession {
     Ok(HashRatchet::new(base_secret))
   }
 
+  /// Sets whether to send the protocol's Opus silence packet without encryption.
+  ///
+  /// Enabled by default.
+  pub fn set_opus_silence_passthrough(&mut self, enabled: bool) {
+    self.opus_silence_passthrough = enabled;
+  }
+
   /// End-to-end encrypt a packet.
   pub fn encrypt<'a>(
     &mut self,
@@ -1001,7 +1010,7 @@ impl DaveSession {
 
     // Return the packet back to the client (passthrough) if the packet is an opus silence packet
     // This may change in the future, see: https://daveprotocol.com/#silence-packets
-    if codec == Codec::OPUS && packet == OPUS_SILENCE_PACKET {
+    if self.opus_silence_passthrough && codec == Codec::OPUS && packet == OPUS_SILENCE_PACKET {
       return Ok(Cow::Borrowed(packet));
     }
 
@@ -1025,7 +1034,7 @@ impl DaveSession {
 
     // Return the packet back to the client (passthrough) if the packet is an opus silence packet
     // This may change in the future, see: https://daveprotocol.com/#silence-packets
-    if codec == Codec::OPUS && packet == OPUS_SILENCE_PACKET {
+    if self.opus_silence_passthrough && codec == Codec::OPUS && packet == OPUS_SILENCE_PACKET {
       encrypted_packet.clear();
       encrypted_packet.extend_from_slice(packet);
       return Ok(());
