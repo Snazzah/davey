@@ -15,5 +15,7 @@ The Node implementation is available under the `@snazzah/davey` package. Check t
 ### Usage from Rust
 Right now there isn't any solid docs on using the Rust crate, but it's available at `davey`.
 
+Enable the `aws-lc` Cargo feature to use AWS-LC for media encryption and decryption on supported native targets.
+
 ### Usage from Python
 Python package is available at `davey`. Check the [typings](/davey-python/davey.pyi) for usage.

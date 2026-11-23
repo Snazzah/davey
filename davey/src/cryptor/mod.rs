@@ -61,6 +61,7 @@ pub enum Codec {
   AV1 = 6,
 }
 
+#[cfg_attr(feature = "aws-lc", path = "aws_lc_aead_cipher.rs")]
 pub(crate) mod aead_cipher;
 pub(crate) mod clock;
 pub(crate) mod codec_utils;
