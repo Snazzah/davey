@@ -14,6 +14,7 @@ openmls_basic_credential = "0.5.0"
 openmls_rust_crypto = "0.5.1"
 openmls_traits = "0.5.0"
 tracing = "0.1.41"
+memchr = "2"
 thiserror = "2.0.12"
 # Crypto utils
 p256 = { version = "0.13" }
