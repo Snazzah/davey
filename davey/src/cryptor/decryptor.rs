@@ -1,6 +1,6 @@
 use std::{
   cmp::min,
-  collections::{HashMap, VecDeque},
+  collections::VecDeque,
   sync::Arc,
   time::{Duration, Instant},
 };
@@ -15,7 +15,7 @@ use super::{
 };
 
 #[cfg_attr(feature = "pyo3", pyclass(get_all, from_py_object))]
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct DecryptionStats {
   /// Number of decryption successes
   pub successes: u64,
@@ -38,7 +38,7 @@ pub struct Decryptor {
   cryptor_managers: VecDeque<CipherManager>,
   frame_processors: Vec<InboundFrameProcessor>,
   allow_passthrough_until: Option<Duration>, // None == TimePoint::max()
-  pub stats: HashMap<MediaType, DecryptionStats>,
+  pub stats: [DecryptionStats; 2],
 }
 
 impl Decryptor {
@@ -47,38 +47,12 @@ impl Decryptor {
   }
 
   pub(crate) fn with_clock(clock: Arc<Clock>) -> Self {
-    let mut stats = HashMap::new();
-    stats.insert(
-      MediaType::AUDIO,
-      DecryptionStats {
-        successes: 0,
-        failures: 0,
-        duration: 0,
-        attempts: 0,
-        missing_keys: 0,
-        invalid_nonces: 0,
-        passthroughs: 0,
-      },
-    );
-    stats.insert(
-      MediaType::VIDEO,
-      DecryptionStats {
-        successes: 0,
-        failures: 0,
-        duration: 0,
-        attempts: 0,
-        missing_keys: 0,
-        invalid_nonces: 0,
-        passthroughs: 0,
-      },
-    );
-
     Self {
       clock,
       cryptor_managers: VecDeque::new(),
       frame_processors: Vec::new(),
       allow_passthrough_until: Some(Duration::new(0, 0)),
-      stats,
+      stats: Default::default(),
     }
   }
 
@@ -111,13 +85,13 @@ impl Decryptor {
     if !local_frame.encrypted && self.can_passthrough() {
       let copy_size = min(frame.len(), encrypted_frame.len());
       frame[..copy_size].copy_from_slice(&encrypted_frame[..copy_size]);
-      let stats = self.stats.get_mut(&media_type).unwrap();
+      let stats = &mut self.stats[media_type as usize];
       stats.passthroughs += 1;
       self.return_frame_processor(local_frame);
       return Ok(copy_size);
     }
 
-    let stats = self.stats.get_mut(&media_type).unwrap();
+    let stats = &mut self.stats[media_type as usize];
     // If the frame is not encrypted, and we can't pass it through, fail
     if !local_frame.encrypted {
       stats.failures += 1;
@@ -158,7 +132,7 @@ impl Decryptor {
       }
     };
 
-    let stats = self.stats.get_mut(&media_type).unwrap();
+    let stats = &mut self.stats[media_type as usize];
     stats.duration += start.elapsed().as_micros() as u64;
 
     // FIXME this technically should return when local_frame drops, but thats gonna be a bit annoying here
