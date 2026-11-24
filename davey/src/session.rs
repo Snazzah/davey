@@ -659,13 +659,13 @@ impl DaveSession {
       }
     }
 
-    let group = staged_join.into_group(&self.provider)?;
-
     if let Some(mut pending_group) = self.group.take() {
       pending_group
         .delete(self.provider.storage())
         .map_err(ProcessWelcomeError::DeletingPendingGroupFailed)?;
     }
+
+    let group = staged_join.into_group(&self.provider)?;
 
     debug!(
       "Welcomed to group successfully, our leaf index is {:?}, our epoch is {:?}",
