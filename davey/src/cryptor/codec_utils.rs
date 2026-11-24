@@ -60,8 +60,12 @@ pub fn bytes_covering_h264_pps(payload: &[u8], size_remaining: usize) -> u16 {
     }
   }
 
+  if parsed_exp_golomb_values < 3 || payload_bit_index > size_remaining as u64 * 8 {
+    return 0;
+  }
+
   // this frame can be packetized as a STAP-A or a FU-A
-  let result = (payload_bit_index / 8) + 1;
+  let result = ((payload_bit_index / 8) + 1).min(size_remaining as u64);
   let mut bytes = 0;
   if result <= u16::MAX as u64 {
     // only bytes not covering H264 PPS result can fit into unencrypted frame header size
@@ -135,17 +139,21 @@ pub fn process_frame_h264(processor: &mut OutboundFrameProcessor, frame: &[u8]) 
       // once we've hit a slice or an IDR
       // we just need to cover getting to the PPS ID
       let nal_unit_payload_start = nal_unit_start_index + NAL_UNIT_HEADER_SIZE;
+      let nal_unit_payload_size = next_nalu_start - nal_unit_payload_start;
       let nal_unit_pps_bytes = bytes_covering_h264_pps(
-        &frame[nal_unit_payload_start..],
-        frame.len() - nal_unit_payload_start,
-      );
+        &frame[nal_unit_payload_start..next_nalu_start],
+        nal_unit_payload_size,
+      ) as usize;
+      if nal_unit_pps_bytes == 0 || nal_unit_pps_bytes > nal_unit_payload_size {
+        warn!("H264 slice NAL unit does not contain a complete PPS ID");
+        return false;
+      }
 
       processor.add_unencrypted_bytes(
-        &frame[nal_unit_start_index..][..(NAL_UNIT_HEADER_SIZE + nal_unit_pps_bytes as usize)],
+        &frame[nal_unit_start_index..][..(NAL_UNIT_HEADER_SIZE + nal_unit_pps_bytes)],
       );
       processor.add_encrypted_bytes(
-        &frame[(nal_unit_start_index + NAL_UNIT_HEADER_SIZE + nal_unit_pps_bytes as usize)
-          ..next_nalu_start],
+        &frame[(nal_unit_start_index + NAL_UNIT_HEADER_SIZE + nal_unit_pps_bytes)..next_nalu_start],
       );
     } else {
       // copy the whole NAL unit
